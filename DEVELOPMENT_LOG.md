@@ -1,22 +1,40 @@
 # Development Log
 
-## 2026-09-30 — Foundation
+## 2026-09-30 — Laravel 10 Backend Foundation
 
-### Decisions
+### Version
+`0.2.0`
 
-- Project development codename: ODP.
-- Project is being built from scratch.
-- Fuodz is not used as the project foundation.
-- GitHub is the source of truth.
-- Development starts with the foundation before business logic.
-- User App, Runner App, Backend and Admin are separated.
-- Business modules are intentionally deferred.
-- Version baseline: v0.1.0.
+### Completed
+- Established Laravel 10 backend under `backend/`.
+- Laravel Framework `10.50.3` verified.
+- PHP `8.4.15` verified.
+- Composer `2.10.3` verified.
+- Application environment initialized.
+- Application key generated successfully.
+- Initial Laravel test suite executed successfully.
+- PHPUnit result: `2 passed`.
+- Backend committed and pushed to GitHub.
 
-### Current Scope
+### Architecture Decision
+The project will initially use Laravel 10 for compatibility with the planned shared-hosting deployment environment.
 
-Only project structure and documentation are established.
+Laravel will remain at version 10 during the initial development phase. A future Laravel upgrade will be treated as a controlled migration after deployment requirements and hosting compatibility are confirmed.
 
-### Next Target
+### Scope Control
+The backend currently contains only the Laravel technical foundation.
 
-Establish the technical foundation for the Backend and User App without introducing business-specific order, fare or payment logic.
+The following are intentionally not implemented yet:
+- Authentication design
+- User profile business logic
+- Order engine
+- Fare/price engine
+- Payment integration
+- Wallet
+- Runner task logic
+- Vendor system
+- Delivery module
+- Personal Shopper module
+
+### Next Stage
+Build the ODP backend API foundation without introducing business-specific logic.
