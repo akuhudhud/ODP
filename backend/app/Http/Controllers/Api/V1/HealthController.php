@@ -3,19 +3,19 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Responses\ApiResponse;
 use Illuminate\Http\JsonResponse;
 
 class HealthController extends Controller
 {
     public function __invoke(): JsonResponse
     {
-        return response()->json([
-            'status' => 'success',
-            'message' => 'API is healthy.',
-            'data' => [
+        return ApiResponse::success(
+            message: 'API is healthy.',
+            data: [
                 'service' => 'api',
                 'version' => 'v1',
-            ],
-        ]);
+            ]
+        );
     }
 }
