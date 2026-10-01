@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented here.
 
+## [0.4.0] - 2026-10-01
+
+### Added
+- Standard API v1 response structure.
+- Success response format with `status`, `message` and `data`.
+- Error response format with `status`, `message` and `data`.
+- API v1 response documentation under `docs/api/v1.md`.
+
+### Changed
+- Updated `HealthController` to use the API v1 response standard.
+- Updated API health feature test to validate the new response structure.
+
+### Validation
+- Full Laravel test suite: 3 tests passed.
+
+### Scope
+- API infrastructure only.
+- No business logic implemented.
+
 ## [0.3.0] - 2026-10-01
 
 ### Added
