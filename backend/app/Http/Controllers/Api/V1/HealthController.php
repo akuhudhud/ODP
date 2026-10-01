@@ -10,9 +10,12 @@ class HealthController extends Controller
     public function __invoke(): JsonResponse
     {
         return response()->json([
-            'status' => 'ok',
-            'service' => 'api',
-            'version' => 'v1',
+            'status' => 'success',
+            'message' => 'API is healthy.',
+            'data' => [
+                'service' => 'api',
+                'version' => 'v1',
+            ],
         ]);
     }
 }
