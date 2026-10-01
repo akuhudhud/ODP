@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented here.
 
+## [0.3.0] - 2026-10-01
+
+### Added
+- API v1 foundation.
+- API health endpoint at `GET /api/v1/health`.
+- `HealthController` under the API v1 namespace.
+- Automated feature test for the API health endpoint.
+
+### Validation
+- API health test passed.
+- Full Laravel test suite: 3 tests passed.
+
+### Scope
+- API infrastructure only.
+- No business logic implemented.
+- No authentication workflow.
+- No order engine.
+- No fare/price engine.
+- No payment or wallet system.
+- No vendor system.
+- No delivery or personal shopper workflow.
+
 ## [0.2.0] - 2026-09-30
 
 ### Added
