@@ -4,7 +4,7 @@ ODP is the internal development codename for the project.
 
 ## Status
 
-Foundation stage — v0.1.0.
+Foundation stage — v0.3.0.
 
 ## v0.1.0 Scope
 
@@ -44,4 +44,4 @@ No business logic is included yet:
 
 Semantic-versioning style is used.
 
-Current version: `0.1.0`
+Current version: `0.3.0`
