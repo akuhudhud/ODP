@@ -1,14 +1,14 @@
-ODP Account Foundation
+# ODP Account Foundation
 
-Status
+## Status
 
 LOCKED
 
-Versi
+## Versi
 
 v0.5.0 — Asas Akaun dan Pengesahan
 
-Tujuan
+## Tujuan
 
 Dokumen ini menetapkan blueprint rasmi untuk Account Foundation ODP.
 
@@ -20,7 +20,7 @@ Keputusan yang dinyatakan sebagai LOCKED tidak boleh diubah tanpa keputusan baha
 
 ---
 
-1. Prinsip Account
+# 1. Prinsip Account
 
 ODP menggunakan satu identiti account berpusat.
 
@@ -40,59 +40,59 @@ ODP tidak bergantung kepada database untuk menjana UUID v7.
 
 ---
 
-2. Account
+# 2. Account
 
 Table utama:
 
-"accounts"
+`accounts`
 
 Field:
 
-- "id" — UUID v7
-- "status"
-- "created_at"
-- "updated_at"
-- "deactivated_at"
-- "deleted_at"
+- `id` — UUID v7
+- `status`
+- `created_at`
+- `updated_at`
+- `deactivated_at`
+- `deleted_at`
 
 Status Account:
 
-- "ACTIVE"
-- "SUSPENDED"
-- "DEACTIVATED"
-- "DELETED"
+- `ACTIVE`
+- `SUSPENDED`
+- `DEACTIVATED`
+- `DELETED`
 
-ACTIVE
+## ACTIVE
 
 Account boleh digunakan seperti biasa tertakluk kepada authentication dan authorization.
 
-SUSPENDED
+## SUSPENDED
 
 Account disekat sementara mengikut keputusan sistem atau pentadbiran.
 
-DEACTIVATED
+## DEACTIVATED
 
 Account tidak aktif tetapi masih wujud dalam sistem.
 
-DELETED
+## DELETED
 
-Status "DELETED" adalah kekal.
+Status `DELETED` adalah kekal.
 
 Data dan rekod Account dikekalkan mengikut keperluan retention.
 
 Account ID tidak boleh digunakan semula.
 
-Account yang telah "DELETED" tidak boleh dipulihkan melalui Account Recovery.
+Account yang telah `DELETED` tidak boleh dipulihkan melalui Account Recovery.
 
 Account deletion tidak bermaksud rekod Account dibuang secara fizikal daripada database.
 
 ---
 
-3. Contact
+# 3. Contact
 
 Table:
 
-"account_contacts"
+`account_contacts`
 
 Jenis contact:
 
@@ -109,10 +109,10 @@ Setiap contact mempunyai:
 
 Status contact:
 
-- "ACTIVE"
-- "RELEASED"
+- `ACTIVE`
+- `RELEASED`
 
-Phone
+## Phone
 
 Phone number menggunakan format E.164.
 
@@ -122,9 +122,9 @@ Satu Account boleh mempunyai maksimum:
 
 - satu active phone
 
-Phone yang telah "RELEASED" boleh digunakan oleh Account lain selepas verification berjaya.
+Phone yang telah `RELEASED` boleh digunakan oleh Account lain selepas verification berjaya.
 
-Email
+## Email
 
 Email digunakan untuk:
 
@@ -141,9 +141,9 @@ Satu Account boleh mempunyai maksimum:
 
 - satu active email
 
-Email yang telah "RELEASED" boleh digunakan oleh Account lain selepas verification berjaya.
+Email yang telah `RELEASED` boleh digunakan oleh Account lain selepas verification berjaya.
 
-Active Contact
+## Active Contact
 
 Constraint:
 
@@ -154,21 +154,21 @@ Contact yang tidak aktif tidak dianggap sebagai active identity contact.
 
 ---
 
-4. Profile
+# 4. Profile
 
 Table:
 
-"account_profiles"
+`account_profiles`
 
 Field utama:
 
-- "display_name"
-- "display_name_changed_at"
-- "profile_photo"
+- `display_name`
+- `display_name_changed_at`
+- `profile_photo`
 
 Profile berkait terus dengan Account.
 
-Display Name
+## Display Name
 
 Display name:
 
@@ -182,11 +182,11 @@ Display name hanya boleh ditukar sekali setiap 30 hari.
 
 Sistem menentukan kelayakan perubahan berdasarkan:
 
-"display_name_changed_at"
+`display_name_changed_at`
 
 Tiada counter tambahan diperlukan.
 
-Profile Lengkap
+## Profile Lengkap
 
 Profile dianggap lengkap apabila:
 
@@ -196,7 +196,7 @@ Profile dianggap lengkap apabila:
 
 Tiada field:
 
-"profile_complete"
+`profile_complete`
 
 disimpan dalam database.
 
@@ -204,21 +204,21 @@ Status profile lengkap ditentukan berdasarkan keadaan sebenar Account.
 
 ---
 
-5. Kata Laluan
+# 5. Kata Laluan
 
 Table:
 
-"account_passwords"
+`account_passwords`
 
 Sejarah kata laluan:
 
-"account_password_history"
+`account_password_history`
 
 Kata laluan hanya disimpan dalam bentuk hash.
 
 Password plaintext tidak boleh disimpan.
 
-Polisi Kata Laluan
+## Polisi Kata Laluan
 
 Panjang:
 
@@ -235,7 +235,7 @@ Simbol tidak diwajibkan.
 
 Password confirmation tidak disimpan.
 
-Tukar Password
+## Tukar Password
 
 Password change hanya boleh dilakukan melalui email yang telah disahkan.
 
@@ -247,7 +247,7 @@ Current password tidak boleh digunakan semula serta-merta.
 
 Password history digunakan untuk menghalang penggunaan semula password yang baru digunakan.
 
-Reset Password
+## Reset Password
 
 Password reset hanya boleh dilakukan melalui email yang telah disahkan.
 
@@ -259,11 +259,11 @@ Password history tidak pernah menyimpan plaintext.
 
 ---
 
-6. Device
+# 6. Device
 
 Table:
 
-"account_devices"
+`account_devices`
 
 Device bukan identity.
 
@@ -281,21 +281,21 @@ Maklumat device yang diperlukan untuk konteks session boleh disimpan.
 
 ---
 
-7. Session
+# 7. Session
 
 Table:
 
-"app_sessions"
+`app_sessions`
 
 Aplikasi ODP:
 
-- "USER"
-- "RUNNER"
-- "ADMIN"
+- `USER`
+- `RUNNER`
+- `ADMIN`
 
-Maksimum satu session "ACTIVE" bagi kombinasi:
+Maksimum satu session `ACTIVE` bagi kombinasi:
 
-"Account + App"
+`Account + App`
 
 Contoh:
 
@@ -306,9 +306,9 @@ Account A boleh mempunyai:
 
 secara serentak.
 
-Tetapi Account yang sama tidak boleh mempunyai dua session "ACTIVE" untuk User App pada masa yang sama.
+Tetapi Account yang sama tidak boleh mempunyai dua session `ACTIVE` untuk User App pada masa yang sama.
 
-Login Baharu
+## Login Baharu
 
 Login yang berjaya pada aplikasi yang sama akan:
 
@@ -318,7 +318,7 @@ Login yang berjaya pada aplikasi yang sama akan:
 
 Login yang gagal tidak akan revoke session lama.
 
-Security Lock
+## Security Lock
 
 Security lock adalah berasingan daripada Account Status.
 
@@ -326,35 +326,35 @@ Contoh:
 
 Account boleh mempunyai status:
 
-"ACTIVE"
+`ACTIVE`
 
 tetapi login masih disekat kerana security lock.
 
 ---
 
-8. Login Security
+# 8. Login Security
 
 Sistem menggunakan escalation berdasarkan percubaan password yang gagal.
 
-Level 1
+## Level 1
 
 Selepas:
 
-"3" percubaan password gagal
+`3` percubaan password gagal
 
 Sistem:
 
 - menetapkan Level 1
 - lock selama 30 minit
 
-Level 2
+## Level 2
 
 Selepas 3 percubaan gagal seterusnya:
 
 - menetapkan Level 2
 - lock selama 1 jam
 
-Level 3
+## Level 3
 
 Selepas 3 percubaan gagal seterusnya:
 
@@ -365,7 +365,7 @@ Level 3 tidak mempunyai timer tetap 24 jam.
 
 Account tidak boleh login sehingga Admin Review diselesaikan.
 
-Reset Escalation
+## Reset Escalation
 
 Login yang berjaya pada:
 
@@ -378,35 +378,35 @@ Login yang berjaya tidak dibenarkan pada Level 3 sebelum Admin Review selesai.
 
 Security lock tidak mengubah:
 
-"accounts.status"
+`accounts.status`
 
 ---
 
-9. OTP
+# 9. OTP
 
 OTP menggunakan:
 
-"6 digit"
+`6 digit`
 
 Tempoh sah:
 
-"5 minit"
+`5 minit`
 
-OTP Entry
+## OTP Entry
 
 Maksimum percubaan memasukkan OTP:
 
-"3 kali"
+`3 kali`
 
-Resend
+## Resend
 
 Cooldown:
 
-"5 minit"
+`5 minit`
 
 Maksimum resend:
 
-"3 kali"
+`3 kali`
 
 Selepas maksimum 3 resend dicapai:
 
@@ -415,7 +415,51 @@ Selepas maksimum 3 resend dicapai:
 - tempoh 24 jam dikira dari `last_sent_at` resend terakhir
 - selepas tempoh 24 jam tamat, proses resend boleh diteruskan mengikut polisi sistem
 
-OTP Baharu
+## Admin OTP Override
+
+Admin mempunyai dua tindakan khas berkaitan OTP resend dan verification.
+
+### RESET_OTP_RESEND_LOCK
+
+Admin boleh membuka semula sekatan resend.
+
+Selepas sekatan dibuka:
+
+- pengguna boleh request OTP baharu
+- OTP tetap perlu dihantar melalui channel OTP yang sah
+- pengguna tetap perlu melalui proses verification biasa
+
+Admin tidak mengesahkan OTP bagi pihak pengguna melalui tindakan ini.
+
+### BYPASS_OTP_VERIFICATION
+
+Admin boleh melakukan bypass verification apabila tindakan tersebut diperlukan.
+
+Apabila bypass diluluskan:
+
+- sistem menandakan verification sebagai berjaya
+- pengguna tidak perlu memasukkan OTP untuk verification tersebut
+
+Admin:
+
+- tidak melihat OTP
+- tidak menetapkan OTP
+- tidak menerima OTP plaintext
+
+Kedua-dua tindakan Admin:
+
+- `RESET_OTP_RESEND_LOCK`
+- `BYPASS_OTP_VERIFICATION`
+
+mestilah:
+
+- dilakukan oleh Admin yang mempunyai authorization yang sesuai
+- mempunyai `reason`
+- direkodkan dalam Audit Log
+
+OTP Admin override tidak mengubah Account Status.
+
+## OTP Baharu
 
 OTP baharu akan membatalkan OTP lama untuk tujuan/contact yang berkaitan.
 
@@ -429,26 +473,26 @@ OTP untuk phone mesti berkait dengan phone contact yang tepat.
 
 OTP untuk email mesti berkait dengan email contact yang tepat.
 
-OTP Purpose
+## OTP Purpose
 
 OTP boleh digunakan untuk:
 
-- "REGISTER"
-- "VERIFY_PHONE"
-- "VERIFY_EMAIL"
-- "CHANGE_PHONE"
-- "CHANGE_EMAIL"
-- "ACCOUNT_RECOVERY"
+- `REGISTER`
+- `VERIFY_PHONE`
+- `VERIFY_EMAIL`
+- `CHANGE_PHONE`
+- `CHANGE_EMAIL`
+- `ACCOUNT_RECOVERY`
 
 Password change dan password reset kekal menggunakan verified email dan tidak menggunakan phone OTP.
 
 ---
 
-10. Account Recovery
+# 10. Account Recovery
 
 ODP menggunakan:
 
-"Model C"
+`Model C`
 
 untuk Account Recovery.
 
@@ -465,17 +509,17 @@ Admin tidak melihat atau menetapkan password pengguna.
 
 Sistem menentukan recovery path berdasarkan keadaan Account dan verification yang tersedia.
 
-Recovery Mode
+## Recovery Mode
 
 Selepas Recovery Request diluluskan:
 
 Recovery Mode sah selama:
 
-"30 minit"
+`30 minit`
 
 Recovery Mode mempunyai tempoh terhad dan tidak menjadi session biasa.
 
-Successful Recovery
+## Successful Recovery
 
 Recovery yang berjaya akan:
 
@@ -484,36 +528,36 @@ Recovery yang berjaya akan:
 
 Account Recovery tidak mengubah:
 
-"Account Status"
+`Account Status`
 
-Deleted Account
+## Deleted Account
 
 Account dengan status:
 
-"DELETED"
+`DELETED`
 
 tidak boleh menjalani Account Recovery.
 
-Recovery Reason
+## Recovery Reason
 
 Reason yang dibenarkan:
 
-- "EMAIL_INACCESSIBLE"
-- "PHONE_AND_EMAIL_INACCESSIBLE"
-- "OTHER"
+- `EMAIL_INACCESSIBLE`
+- `PHONE_AND_EMAIL_INACCESSIBLE`
+- `OTHER`
 
-Recovery Status
+## Recovery Status
 
 Status:
 
-- "PENDING"
-- "APPROVED"
-- "REJECTED"
-- "CANCELLED"
+- `PENDING`
+- `APPROVED`
+- `REJECTED`
+- `CANCELLED`
 
 ---
 
-11. Security Activity
+# 11. Security Activity
 
 Security Activity adalah rekod aktiviti keselamatan bagi pemilik Account.
 
@@ -523,11 +567,11 @@ Security Activity bukan rekod audit untuk Admin dan tidak menjadi pengganti kepa
 
 Format:
 
-"JSONL"
+`JSONL`
 
 Retention:
 
-"3 bulan"
+`3 bulan`
 
 Security Activity mesti disimpan secara fizikal berasingan daripada Audit Log.
 
@@ -537,7 +581,7 @@ Kedua-duanya tidak boleh dicampurkan.
 
 ---
 
-12. Audit Log
+# 12. Audit Log
 
 Audit Log adalah untuk kegunaan dalaman.
 
@@ -548,7 +592,7 @@ Akses:
 
 Audit Log menggunakan:
 
-"JSONL"
+`JSONL`
 
 Audit Log mempunyai ciri:
 
@@ -565,12 +609,32 @@ Aktiviti berikut juga perlu diaudit apabila berkaitan:
 - tindakan pentadbiran
 - perubahan keselamatan
 - aktiviti dalaman yang memerlukan audit
+- `RESET_OTP_RESEND_LOCK`
+- `BYPASS_OTP_VERIFICATION`
+
+High-risk Admin action mesti mempunyai:
+
+- actor
+- target
+- reason
+- timestamp
+- result
+
+Audit Log tidak boleh menyimpan:
+
+- password
+- password hash
+- OTP
+- OTP hash
+- session token
+- access token
+- dokumen sensitif yang tidak diperlukan
 
 Security Activity dan Audit Log tidak boleh dicampurkan.
 
 ---
 
-13. Authentication dan Authorization
+# 13. Authentication dan Authorization
 
 Authentication menentukan identiti Account.
 
@@ -592,27 +656,27 @@ Account Foundation tidak menentukan business permission yang belum diperlukan.
 
 ---
 
-14. API
+# 14. API
 
 Authentication API berada di bawah:
 
-"/api/v1/auth"
+`/api/v1/auth`
 
 API menggunakan standard response ODP yang telah ditetapkan.
 
 Standard response:
 
-- "status"
-- "message"
-- "data"
+- `status`
+- `message`
+- `data`
 
 User-facing message mesti menggunakan Bahasa Malaysia.
 
 Technical identifiers seperti:
 
-- "status"
-- "message"
-- "data"
+- `status`
+- `message`
+- `data`
 - endpoint path
 - class name
 - method name
@@ -625,7 +689,7 @@ Authentication API tidak boleh mencampurkan business workflow yang belum termasu
 
 ---
 
-15. Bahasa Projek
+# 15. Bahasa Projek
 
 Bahasa rasmi ODP ialah Bahasa Malaysia.
 
@@ -661,7 +725,7 @@ English hanya dikekalkan apabila diperlukan sebagai:
 
 ---
 
-16. Di Luar Scope v0.5.0
+# 16. Di Luar Scope v0.5.0
 
 Perkara berikut tidak termasuk dalam v0.5.0:
 
@@ -682,13 +746,13 @@ Perkara berikut tidak termasuk dalam v0.5.0:
 
 Semua perkara tersebut ialah:
 
-"FUTURE"
+`FUTURE`
 
 Ia tidak boleh dimasukkan ke implementation v0.5.0 tanpa keputusan scope baharu.
 
 ---
 
-17. Prinsip Architecture
+# 17. Prinsip Architecture
 
 Account ialah Identity Foundation.
 
@@ -712,15 +776,15 @@ Foundation mesti boleh digunakan oleh User App, Runner App dan Admin tanpa mewuj
 
 ---
 
-18. Status Keputusan
+# 18. Status Keputusan
 
 Architecture dalam dokumen ini adalah:
 
-LOCKED
+`LOCKED`
 
 Versi:
 
-"v0.5.0 — Asas Akaun dan Pengesahan"
+`v0.5.0 — Asas Akaun dan Pengesahan`
 
 Sebarang perubahan kepada keputusan dalam dokumen ini memerlukan keputusan baharu daripada Kapten sebelum implementation diteruskan.
 
