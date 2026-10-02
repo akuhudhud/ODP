@@ -289,7 +289,15 @@ Resend:
 - cooldown 5 minit
 - maksimum 3 resend
 
-Selepas maksimum resend dicapai, pengguna perlu menunggu sehingga hari berikutnya.
+Selepas maksimum 3 resend dicapai:
+
+- resend disekat
+- pengguna perlu menunggu 24 jam
+- 24 jam dikira dari `last_sent_at` resend terakhir
+- pengiraan menggunakan rolling 24 jam
+- perubahan tarikh atau 00:00 tidak mereset sekatan
+
+Pengguna boleh menghubungi Admin untuk bantuan sekiranya resend masih disekat.
 
 OTP baharu akan membatalkan OTP lama.
 
@@ -314,7 +322,53 @@ Password change dan password reset kekal menggunakan verified email dan tidak me
 
 ---
 
-# 10. Account Recovery
+# 10. Admin OTP Override
+
+Admin mempunyai dua tindakan khas berkaitan OTP resend dan verification.
+
+## RESET_OTP_RESEND_LOCK
+
+Admin boleh membuka semula sekatan resend.
+
+Selepas sekatan dibuka:
+
+- pengguna boleh request OTP baharu
+- OTP tetap dihantar melalui channel OTP yang sah
+- pengguna tetap perlu melalui proses verification biasa
+
+Admin tidak mengesahkan OTP bagi pihak pengguna melalui tindakan ini.
+
+## BYPASS_OTP_VERIFICATION
+
+Admin boleh melakukan bypass verification apabila tindakan tersebut diperlukan.
+
+Apabila bypass diluluskan:
+
+- sistem menandakan verification sebagai berjaya
+- pengguna tidak perlu memasukkan OTP untuk verification tersebut
+
+Admin:
+
+- tidak melihat OTP
+- tidak menetapkan OTP
+- tidak menerima OTP plaintext
+
+Kedua-dua tindakan:
+
+- `RESET_OTP_RESEND_LOCK`
+- `BYPASS_OTP_VERIFICATION`
+
+mestilah:
+
+- dilakukan oleh Admin yang mempunyai authorization yang sesuai
+- mempunyai `reason`
+- direkodkan dalam Audit Log
+
+Kedua-dua tindakan ini tidak mengubah Account Status.
+
+---
+
+# 11. Account Recovery
 
 ODP menggunakan Model C untuk Account Recovery.
 
@@ -341,6 +395,12 @@ Recovery yang berjaya akan revoke semua active sessions.
 
 Account Recovery tidak mengubah Account Status.
 
+Status selepas recovery dikekalkan:
+
+- `ACTIVE` → `ACTIVE`
+- `SUSPENDED` → `SUSPENDED`
+- `DEACTIVATED` → `DEACTIVATED`
+
 Account `DELETED` tidak boleh menjalani Account Recovery.
 
 ## Recovery Reason
@@ -362,13 +422,17 @@ Status:
 
 ---
 
-# 11. Security Activity
+# 12. Security Activity
 
-Security Activity hanya boleh dilihat oleh pemilik account atau user yang berkaitan.
+Security Activity ialah rekod aktiviti keselamatan milik pemilik Account.
+
+Hanya pemilik Account boleh melihat Security Activity sendiri.
+
+Admin tidak mempunyai akses biasa kepada Security Activity pengguna melalui fungsi ini.
 
 Format:
 
-JSONL
+`JSONL`
 
 Retention:
 
@@ -376,9 +440,39 @@ Retention:
 
 Security Activity mesti disimpan secara fizikal berasingan daripada Audit Log.
 
+## Event
+
+Security Activity boleh merekod event seperti:
+
+- `LOGIN_SUCCESS`
+- `LOGIN_FAILED`
+- `LOGOUT`
+- `SESSION_REVOKED`
+- `NEW_DEVICE`
+- `ACCOUNT_LOCKED`
+- `PASSWORD_CHANGED`
+- `PASSWORD_RESET`
+- `PHONE_CHANGED`
+- `EMAIL_CHANGED`
+- `ACCOUNT_DEACTIVATED`
+- `ACCOUNT_REACTIVATED`
+- `ACCOUNT_RECOVERY`
+
+Result:
+
+- `SUCCESS`
+- `FAILED`
+- `BLOCKED`
+
+App:
+
+- `USER`
+- `RUNNER`
+- `ADMIN`
+
 ---
 
-# 12. Audit Log
+# 13. Audit Log
 
 Audit Log adalah untuk kegunaan dalaman.
 
@@ -400,9 +494,34 @@ Aktiviti export atau logging yang berkaitan juga mesti diaudit.
 
 Security Activity dan Audit Log tidak boleh dicampurkan.
 
+## High-Risk Admin Events
+
+Antara event high-risk:
+
+- `OTP_RESEND_LOCK_RESET`
+- `OTP_VERIFICATION_BYPASSED`
+
+High-risk Admin action mesti mempunyai:
+
+- actor
+- target
+- reason
+- timestamp
+- result
+
+Audit Log tidak boleh menyimpan:
+
+- password
+- password hash
+- OTP
+- OTP hash
+- authentication token
+- session token
+- dokumen sensitif
+
 ---
 
-# 13. Authentication dan Authorization
+# 14. Authentication dan Authorization
 
 Authentication menentukan identiti account.
 
@@ -420,9 +539,15 @@ Aplikasi awal:
 
 Permission dan capability khusus aplikasi akan dibina secara berasingan daripada identity foundation.
 
+USER ialah base capability dan tidak memerlukan capability row berasingan.
+
+Runner capability dan Runner eligibility ialah dua perkara berbeza.
+
+Identity Verification bukan authentication, capability, authorization atau service access.
+
 ---
 
-# 14. API
+# 15. API
 
 Authentication API berada di bawah:
 
@@ -445,7 +570,7 @@ boleh kekal dalam English apabila diperlukan oleh technical implementation.
 
 ---
 
-# 15. Bahasa Projek
+# 16. Bahasa Projek
 
 Bahasa rasmi ODP ialah Bahasa Malaysia.
 
@@ -471,7 +596,7 @@ English hanya dikekalkan apabila diperlukan sebagai technical identifier, nama f
 
 ---
 
-# 16. Di Luar Scope v0.5.0
+# 17. Di Luar Scope v0.5.0
 
 Perkara berikut tidak termasuk dalam v0.5.0:
 
@@ -492,7 +617,7 @@ Ia tidak boleh dimasukkan ke implementation v0.5.0 tanpa keputusan scope baharu.
 
 ---
 
-# 17. Prinsip Architecture
+# 18. Prinsip Architecture
 
 Account ialah identity foundation.
 
@@ -508,11 +633,17 @@ Security Activity merekod aktiviti keselamatan pengguna.
 
 Audit Log merekod aktiviti dalaman yang memerlukan audit.
 
+OTP verification ialah proses pengesahan contact.
+
+Identity Verification ialah concern berasingan.
+
+Runner eligibility ialah concern berasingan.
+
 Setiap concern hendaklah kekal berasingan.
 
 ---
 
-# 18. Status Keputusan
+# 19. Status Keputusan
 
 Architecture dalam dokumen ini adalah:
 
