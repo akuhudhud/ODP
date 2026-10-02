@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Account extends Model
 {
@@ -30,4 +31,9 @@ class Account extends Model
         'deactivated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
+
+    public function newUniqueId(): string
+    {
+        return (string) Str::uuid7();
+    }
 }
