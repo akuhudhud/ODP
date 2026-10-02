@@ -1,122 +1,269 @@
-# Authentication Foundation
+# Asas Akaun dan Pengesahan
 
 ## Status
 
-Proposed
+LOCKED
 
-## Purpose
+## Versi
 
-This document defines the initial authentication architecture for ODP.
+v0.5.0 — Asas Akaun dan Pengesahan
 
-The purpose is to establish a stable identity foundation before implementing authentication workflows.
+## Tujuan
 
-Business-specific authentication requirements are intentionally excluded at this stage.
+Dokumen ini menetapkan architecture rasmi untuk Account dan Authentication ODP bagi v0.5.0.
 
----
+Dokumen ini menjadi rujukan utama implementation.
 
-## Core Principle
-
-ODP uses a centralized account identity.
-
-One account represents one identity across the ODP platform.
-
-The same account may later access different ODP applications or capabilities without requiring separate accounts.
+Keputusan yang dinyatakan sebagai LOCKED tidak boleh diubah tanpa keputusan baharu daripada Kapten.
 
 ---
 
-## Account Identity
+# 1. Prinsip Akaun
 
-An ODP account may support:
+ODP menggunakan satu identiti akaun berpusat.
 
-- Phone number
-- Email address
+Satu Account mewakili satu identiti dalam platform ODP.
 
-The architecture does not currently designate phone number or email address as the single mandatory primary identifier.
+Account yang sama boleh digunakan oleh aplikasi atau fungsi ODP yang berbeza tanpa mewujudkan account berasingan.
 
-The final authentication method will be defined when functional requirements are implemented.
+Account ID menggunakan UUID v7.
 
----
-
-## Application Access
-
-The authentication system is shared across ODP applications.
-
-Initial applications:
-
-- User App
-- Runner App
-- Admin System
-
-Application-specific permissions and capabilities will be defined separately.
+Account ID tidak boleh digunakan semula.
 
 ---
 
-## Future Capabilities
+# 2. Account
 
-An account may later have different capabilities.
+Table utama:
 
-Examples:
+`accounts`
 
-- User
-- Runner
-- Admin
+Field:
 
-These capabilities must not require duplicate accounts for the same identity.
+- `id` — UUID v7
+- `status`
+- `created_at`
+- `updated_at`
+- `deactivated_at`
+- `deleted_at`
 
-The exact authorization model will be defined separately from authentication.
+Status Account:
 
----
+- `ACTIVE`
+- `SUSPENDED`
+- `DEACTIVATED`
+- `DELETED`
 
-## API Authentication
+## DELETED
 
-API authentication will be provided under API v1.
+Status `DELETED` adalah kekal.
 
-Planned base path:
+Data dan rekod account dikekalkan mengikut keperluan retention.
 
-`/api/v1/auth`
+Account ID tidak boleh digunakan semula.
 
-Potential endpoints:
-
-- Register
-- Login
-- Logout
-- Current account
-
-These endpoints are not implemented at this stage.
-
----
-
-## Authentication Technology
-
-Laravel Sanctum is the planned foundation for API token authentication.
-
-Implementation will only begin after the authentication requirements and database structure have been finalized.
+Account yang telah `DELETED` tidak boleh dipulihkan melalui Account Recovery.
 
 ---
 
-## Scope Control
+# 3. Contact
 
-The following are intentionally excluded from this architecture stage:
+Table:
 
-- Registration workflow
-- Login workflow
+`account_contacts`
+
+Jenis contact:
+
+- Phone
+- Email
+
+Setiap contact mempunyai status:
+
+- `ACTIVE`
+- `RELEASED`
+
+Contact juga mempunyai status verification.
+
+## Phone
+
+Phone number menggunakan format E.164.
+
+Phone verification menggunakan WhatsApp OTP.
+
+## Email
+
+Email digunakan untuk:
+
+- Verification
+- Password change
 - Password reset
-- OTP
-- Phone verification
-- Email verification
-- Session management
-- Role implementation
-- Permission implementation
-- Runner onboarding
-- Admin authorization
-- Business-specific authentication rules
+- Account recovery
+
+Email mesti dinormalisasi secara konsisten.
+
+Normalisasi tidak boleh bergantung kepada alias atau behaviour khusus provider.
+
+## Active Contact
+
+Satu account boleh mempunyai maksimum:
+
+- satu active phone
+- satu active email
+
+Contact yang telah `RELEASED` boleh digunakan oleh account lain selepas verification berjaya.
 
 ---
 
-## Architecture Principle
+# 4. Profile
 
-Authentication establishes identity.
+Table:
 
-Authorization determines what an authenticated account is allowed to do.
+`account_profiles`
 
-These concerns should remain separate.
+Field utama:
+
+- `display_name`
+- `display_name_changed_at`
+- `profile_photo`
+
+## Display Name
+
+Display name:
+
+- wajib untuk profile lengkap
+- tidak unik
+- hanya boleh mengandungi huruf Unicode dan ruang
+- tidak boleh mengandungi nombor
+- tidak boleh mengandungi special character
+
+Display name hanya boleh ditukar sekali setiap 30 hari.
+
+## Profile Lengkap
+
+Profile dianggap lengkap apabila:
+
+- display name wujud
+- phone telah disahkan
+- email telah disahkan
+
+Tiada field `profile_complete` disimpan dalam database.
+
+Status profile lengkap ditentukan berdasarkan keadaan sebenar account.
+
+---
+
+# 5. Kata Laluan
+
+Table:
+
+`account_passwords`
+
+Sejarah kata laluan:
+
+`account_password_history`
+
+Kata laluan hanya disimpan dalam bentuk hash.
+
+Password plaintext tidak boleh disimpan.
+
+## Polisi Kata Laluan
+
+Panjang:
+
+- minimum 8 aksara
+- maksimum 12 aksara
+
+Mesti mempunyai:
+
+- sekurang-kurangnya satu huruf besar
+- sekurang-kurangnya satu huruf kecil
+- sekurang-kurangnya satu nombor
+
+Simbol tidak diwajibkan.
+
+Password confirmation tidak disimpan.
+
+## Tukar dan Reset Password
+
+Password change dan password reset hanya boleh dilakukan melalui email yang telah disahkan.
+
+Phone OTP tidak digunakan untuk password change atau password reset.
+
+Password change tidak memerlukan current password.
+
+Current password tidak boleh digunakan semula serta-merta.
+
+Password history tidak pernah menyimpan plaintext.
+
+---
+
+# 6. Device
+
+Table:
+
+`account_devices`
+
+Device bukan identity.
+
+Device identifier bukan permanent identity account.
+
+Device digunakan untuk mengenal pasti konteks peranti dan session.
+
+---
+
+# 7. Session
+
+Table:
+
+`app_sessions`
+
+Aplikasi ODP:
+
+- `USER`
+- `RUNNER`
+- `ADMIN`
+
+Maksimum satu session `ACTIVE` bagi kombinasi:
+
+`Account + App`
+
+User App dan Runner App boleh mempunyai session aktif secara serentak.
+
+## Login Baharu
+
+Login yang berjaya pada aplikasi yang sama akan revoke session lama bagi account tersebut.
+
+Login yang gagal tidak akan revoke session lama.
+
+Security lock berasingan daripada Account Status.
+
+---
+
+# 8. Login Security
+
+Sistem menggunakan escalation berdasarkan percubaan password yang gagal.
+
+## Level 1
+
+Selepas 3 percubaan password gagal:
+
+- Level 1
+- lock selama 30 minit
+
+## Level 2
+
+Selepas 3 percubaan gagal seterusnya:
+
+- Level 2
+- lock selama 1 jam
+
+## Level 3
+
+Selepas 3 percubaan gagal seterusnya:
+
+- Level 3
+- Admin Review diperlukan
+
+Level 3 tidak mempunyai timer tetap 24 jam.
+
+Account tidak boleh login sehingga Admin Review diselesa
