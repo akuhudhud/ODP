@@ -490,7 +490,11 @@ Selepas user mencapai maksimum 3 resend:
 - reset bukan berdasarkan 00:00
 - perubahan tarikh tidak mereset counter
 - user boleh menghubungi Admin untuk bantuan
-- counter hanya boleh membenarkan resend semula selepas tempoh 24 jam tamat atau proses bantuan Admin yang dibenarkan selesai
+- counter hanya boleh membenarkan resend semula selepas tempoh 24 jam tamat
+- Admin boleh membuka semula sekatan resend melalui `RESET_OTP_RESEND_LOCK`
+- Admin boleh melakukan `BYPASS_OTP_VERIFICATION` apabila tindakan tersebut diperlukan
+- kedua-dua tindakan Admin wajib mempunyai reason dan direkodkan dalam Audit Log
+- Admin tidak melihat atau menetapkan OTP
 
 ---
 
@@ -604,7 +608,7 @@ Filesystem server ODP.
 - access melalui application layer
 - retention 3 bulan
 - disimpan secara fizikal berasingan daripada Audit Log
-- user/owner boleh melihat Security Activity sendiri mengikut authorization
+- hanya pemilik Account boleh melihat Security Activity sendiri
 - tidak menggunakan relational table sebagai storage utama
 
 Struktur folder dan nama fail akan ditetapkan semasa implementation.
@@ -787,7 +791,11 @@ Semua keputusan berikut telah diputuskan untuk v0.5.0:
 7. **OTP Resend**
    - maksimum 3 resend
    - selepas itu tunggu 24 jam dari resend terakhir
-   - alternatif hubungi Admin
+   - Admin boleh `RESET_OTP_RESEND_LOCK`
+   - Admin boleh `BYPASS_OTP_VERIFICATION`
+   - kedua-dua tindakan wajib mempunyai reason
+   - kedua-dua tindakan direkodkan dalam Audit Log
+   - Admin tidak melihat atau menetapkan OTP
 
 8. **OTP Timezone**
    - tidak digunakan untuk rule 24 jam
