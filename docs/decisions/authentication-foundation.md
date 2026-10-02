@@ -266,4 +266,256 @@ Selepas 3 percubaan gagal seterusnya:
 
 Level 3 tidak mempunyai timer tetap 24 jam.
 
-Account tidak boleh login sehingga Admin Review diselesa
+Account tidak boleh login sehingga Admin Review diselesaikan.
+
+Login berjaya pada Level 1 atau Level 2 akan reset escalation.
+
+---
+
+# 9. OTP
+
+OTP menggunakan 6 digit.
+
+Tempoh sah:
+
+- 5 minit
+
+Percubaan memasukkan OTP:
+
+- maksimum 3 kali
+
+Resend:
+
+- cooldown 5 minit
+- maksimum 3 resend
+
+Selepas maksimum resend dicapai, pengguna perlu menunggu sehingga hari berikutnya.
+
+OTP baharu akan membatalkan OTP lama.
+
+OTP plaintext tidak boleh disimpan.
+
+OTP hanya disimpan dalam bentuk hash.
+
+OTP mesti terikat kepada contact yang tepat.
+
+## OTP Purpose
+
+OTP boleh digunakan untuk:
+
+- `REGISTER`
+- `VERIFY_PHONE`
+- `VERIFY_EMAIL`
+- `CHANGE_PHONE`
+- `CHANGE_EMAIL`
+- `ACCOUNT_RECOVERY`
+
+Password change dan password reset kekal menggunakan verified email dan tidak menggunakan phone OTP.
+
+---
+
+# 10. Account Recovery
+
+ODP menggunakan Model C untuk Account Recovery.
+
+Account Recovery memerlukan Recovery Request.
+
+Admin sahaja boleh:
+
+- approve
+- reject
+
+Recovery Request.
+
+Admin tidak melihat atau menetapkan password pengguna.
+
+Sistem menentukan recovery path berdasarkan keadaan account dan verification yang tersedia.
+
+## Recovery Mode
+
+Selepas Recovery Request diluluskan:
+
+- Recovery Mode sah selama 30 minit
+
+Recovery yang berjaya akan revoke semua active sessions.
+
+Account Recovery tidak mengubah Account Status.
+
+Account `DELETED` tidak boleh menjalani Account Recovery.
+
+## Recovery Reason
+
+Reason yang dibenarkan:
+
+- `EMAIL_INACCESSIBLE`
+- `PHONE_AND_EMAIL_INACCESSIBLE`
+- `OTHER`
+
+## Recovery Status
+
+Status:
+
+- `PENDING`
+- `APPROVED`
+- `REJECTED`
+- `CANCELLED`
+
+---
+
+# 11. Security Activity
+
+Security Activity hanya boleh dilihat oleh pemilik account atau user yang berkaitan.
+
+Format:
+
+JSONL
+
+Retention:
+
+3 bulan
+
+Security Activity mesti disimpan secara fizikal berasingan daripada Audit Log.
+
+---
+
+# 12. Audit Log
+
+Audit Log adalah untuk kegunaan dalaman.
+
+Akses:
+
+- Root Admin
+- Kapten
+
+Audit Log:
+
+- format JSONL
+- append-only
+- retention minimum 7 tahun
+- fail dipecahkan mengikut bulan
+- menggunakan hash chain
+- mempunyai fingerprint SHA-256 bulanan
+
+Aktiviti export atau logging yang berkaitan juga mesti diaudit.
+
+Security Activity dan Audit Log tidak boleh dicampurkan.
+
+---
+
+# 13. Authentication dan Authorization
+
+Authentication menentukan identiti account.
+
+Authorization menentukan apa yang account tersebut dibenarkan lakukan.
+
+Kedua-dua concern mesti kekal berasingan.
+
+Account yang sama boleh mempunyai akses kepada aplikasi yang berbeza.
+
+Aplikasi awal:
+
+- User App
+- Runner App
+- Admin
+
+Permission dan capability khusus aplikasi akan dibina secara berasingan daripada identity foundation.
+
+---
+
+# 14. API
+
+Authentication API berada di bawah:
+
+`/api/v1/auth`
+
+API menggunakan standard response ODP yang telah ditetapkan.
+
+User-facing message mesti menggunakan Bahasa Malaysia.
+
+Technical identifiers seperti:
+
+- `status`
+- `message`
+- `data`
+- endpoint path
+- class name
+- method name
+
+boleh kekal dalam English apabila diperlukan oleh technical implementation.
+
+---
+
+# 15. Bahasa Projek
+
+Bahasa rasmi ODP ialah Bahasa Malaysia.
+
+Bahasa Malaysia digunakan untuk:
+
+- User App
+- Runner App
+- Admin
+- API user-facing messages
+- Error messages
+- Validation messages
+- Notification
+- OTP
+- README
+- CHANGELOG
+- DEVELOPMENT_LOG
+- Architecture documentation
+- API documentation
+- Decision records
+- Development Rules
+
+English hanya dikekalkan apabila diperlukan sebagai technical identifier, nama framework, standard teknikal atau code identifier.
+
+---
+
+# 16. Di Luar Scope v0.5.0
+
+Perkara berikut tidak termasuk dalam v0.5.0:
+
+- Identity Verification
+- Runner onboarding
+- Vehicle
+- Order
+- Job
+- Matching
+- Dispatch
+- Delivery operation
+- Personal Shopper operation
+- Business-specific operational workflow
+
+Semua perkara tersebut ialah `FUTURE`.
+
+Ia tidak boleh dimasukkan ke implementation v0.5.0 tanpa keputusan scope baharu.
+
+---
+
+# 17. Prinsip Architecture
+
+Account ialah identity foundation.
+
+Authentication mengesahkan identity.
+
+Authorization menentukan capability.
+
+Profile menyimpan maklumat profil.
+
+Device dan Session mengurus konteks akses.
+
+Security Activity merekod aktiviti keselamatan pengguna.
+
+Audit Log merekod aktiviti dalaman yang memerlukan audit.
+
+Setiap concern hendaklah kekal berasingan.
+
+---
+
+# 18. Status Keputusan
+
+Architecture dalam dokumen ini adalah:
+
+**LOCKED**
+
+Sebarang perubahan kepada keputusan ini memerlukan keputusan baharu daripada Kapten sebelum implementation diteruskan.
