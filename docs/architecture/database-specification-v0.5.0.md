@@ -105,6 +105,7 @@ Jadual sokongan:
 8. `account_security`
 9. `otp_challenges`
 10. `account_recovery_requests`
+11. `account_recovery_tokens`
 
 Security Activity dan Audit Log tidak disimpan sebagai relational database table.
 
@@ -525,27 +526,58 @@ Menyimpan Recovery Request untuk Account Recovery Model C.
 
 ---
 
-# 15. Recovery Mode Token
+# 15. account_recovery_tokens
+
+## Tujuan
+
+Menyimpan Recovery Token secara relational selepas Recovery Request diluluskan.
 
 ## DB-009 — Recovery Token
 
 **LOCKED**
 
-Selepas Recovery Request diluluskan:
+## Field
 
-- server menjana Recovery Token rawak
+| Field | Type | Null | Catatan |
+|---|---|---:|---|
+| id | CHAR(36) | NO | Primary Key; UUID v7 |
+| account_id | CHAR(36) | NO | FK ke accounts |
+| recovery_request_id | CHAR(36) | NO | FK ke account_recovery_requests |
+| token_hash | VARCHAR | NO | Hash Recovery Token sahaja |
+| expires_at | DATETIME | NO | Masa token tamat |
+| used_at | DATETIME | YES | Masa token digunakan |
+| created_at | DATETIME | NO | Masa token dicipta |
+
+## Constraint
+
+- `id` PRIMARY KEY
+- `recovery_request_id` UNIQUE
+- satu Recovery Request hanya mempunyai satu Recovery Token
+- token mesti terikat kepada Account
+- token mesti terikat kepada Recovery Request
 - token disimpan sebagai hash sahaja
 - plaintext token tidak disimpan
-- token terikat kepada `account_id`
-- token terikat kepada `recovery_request_id`
 - token sah selama 30 minit
 - token hanya boleh digunakan sekali
-- token tamat tempoh tidak boleh digunakan
-- selepas recovery berjaya, token dianggap digunakan
+- token yang telah digunakan tidak boleh digunakan semula
+- token yang telah tamat tempoh tidak boleh digunakan
+- Recovery Request baharu diperlukan jika Recovery Token telah tamat tempoh atau telah digunakan
+- Account DELETED tidak boleh menggunakan Recovery Token
 - successful recovery revoke semua ACTIVE sessions
-- Admin tidak pernah melihat atau menetapkan password
 
-Mekanisme token mesti memastikan token tidak boleh digunakan untuk Account lain.
+## Relationship
+
+`account_recovery_tokens.account_id`
+
+→ `accounts.id`
+
+`account_recovery_tokens.recovery_request_id`
+
+→ `account_recovery_requests.id`
+
+## Delete Behaviour
+
+Foreign key Recovery Token tidak boleh menyebabkan Account atau Recovery Request dipadam secara cascade.
 
 ---
 
@@ -633,6 +665,8 @@ Hubungan utama:
 
 → `account_recovery_requests.account_id`
 
+→ `account_recovery_tokens.account_id`
+
 Hubungan tambahan:
 
 `account_contacts`
@@ -643,7 +677,14 @@ Hubungan tambahan:
 
 → `app_sessions.device_id`
 
-Recovery Token yang disimpan secara relational mesti mempunyai hubungan kepada Recovery Request dan Account.
+`account_recovery_requests`
+
+→ `account_recovery_tokens.recovery_request_id`
+
+Recovery Token mempunyai hubungan relational kepada:
+
+- Account
+- Recovery Request
 
 ## Foreign Key Delete Behaviour
 
@@ -656,9 +697,60 @@ Sebab:
 - Account ID tidak boleh digunakan semula
 - rekod sejarah Account mesti kekal
 
+Untuk Account Foundation v0.5.0:
+
+- `ON DELETE CASCADE` terhadap Account tidak digunakan
+- hubungan FK yang berkaitan Account menggunakan behaviour yang mengekalkan rekod
+- `ON UPDATE CASCADE` tidak ditetapkan sebagai global rule
+
 ---
 
-# 19. Keputusan Database Yang Telah LOCKED
+# 19. Database Integrity Implementation
+
+## DB-014 — Active Contact Uniqueness Enforcement
+
+**LOCKED**
+
+Behavior berikut mesti dikuatkuasakan pada database:
+
+- ACTIVE PHONE global unique
+- ACTIVE EMAIL global unique
+- maksimum satu ACTIVE PHONE bagi satu Account
+- maksimum satu ACTIVE EMAIL bagi satu Account
+
+Implementation database mesti menggunakan mekanisme MySQL 8.0+ yang boleh menguatkuasakan uniqueness hanya apabila contact berstatus `ACTIVE`.
+
+Implementation sebenar menggunakan generated column dan unique index, atau mekanisme MySQL 8.0+ yang setara dan telah diuji.
+
+## DB-015 — Active Session Uniqueness Enforcement
+
+**LOCKED**
+
+Database mesti menguatkuasakan:
+
+- maksimum satu ACTIVE session bagi Account + App
+
+User App dan Runner App tetap boleh ACTIVE serentak kerana `App` adalah sebahagian daripada identity session.
+
+Implementation database mesti menggunakan mekanisme MySQL 8.0+ yang menguatkuasakan uniqueness hanya apabila session berstatus `ACTIVE`.
+
+Implementation sebenar menggunakan generated column dan unique index, atau mekanisme MySQL 8.0+ yang setara dan telah diuji.
+
+## DB-016 — Recovery Token Uniqueness
+
+**LOCKED**
+
+`account_recovery_tokens.recovery_request_id` mesti UNIQUE.
+
+Tujuannya:
+
+- satu Recovery Request → maksimum satu Recovery Token
+- token baharu memerlukan Recovery Request baharu
+- mengelakkan lebih daripada satu token aktif/terikat kepada request yang sama
+
+---
+
+# 20. Keputusan Database Yang Telah LOCKED
 
 Semua keputusan berikut telah diputuskan untuk v0.5.0:
 
@@ -673,6 +765,7 @@ Semua keputusan berikut telah diputuskan untuk v0.5.0:
 3. **Active Contact Uniqueness**
    - ACTIVE phone global unique
    - ACTIVE email global unique
+   - maksimum satu ACTIVE phone/email bagi setiap Account
 
 4. **Session Status**
    - ACTIVE
@@ -701,11 +794,16 @@ Semua keputusan berikut telah diputuskan untuk v0.5.0:
    - rule menggunakan rolling 24 jam
 
 9. **Recovery Mode**
-   - Recovery Token
+   - Recovery Request
+   - Recovery Token berasingan
    - random
    - hash sahaja
+   - terikat kepada Account dan Recovery Request
+   - satu token bagi satu Recovery Request
    - sekali guna
    - sah 30 minit
+   - token tamat/used tidak boleh digunakan semula
+   - Recovery Request baharu diperlukan untuk token baharu
 
 10. **Security Activity**
     - JSONL
@@ -730,9 +828,13 @@ Semua keputusan berikut telah diputuskan untuk v0.5.0:
     - `account_devices.app` tidak digunakan
     - App context berada pada `app_sessions`
 
+14. **Foreign Key Delete**
+    - tiada `ON DELETE CASCADE` terhadap Account
+    - `ON UPDATE CASCADE` bukan global rule
+
 ---
 
-# 20. Scope
+# 21. Scope
 
 Database Specification ini hanya meliputi:
 
@@ -752,6 +854,7 @@ Termasuk:
 - Login security
 - OTP
 - Account recovery
+- Recovery Token
 - Security Activity
 - Audit Log
 
@@ -776,7 +879,7 @@ Perkara di atas adalah FUTURE dan tidak boleh dimasukkan ke migration Account Fo
 
 ---
 
-# 21. Migration Rule
+# 22. Migration Rule
 
 Migration hanya boleh dibuat berdasarkan dokumen ini.
 
@@ -790,14 +893,35 @@ Migration mesti:
 - tidak menyimpan plaintext password
 - tidak menyimpan plaintext OTP
 - mematuhi global uniqueness phone/email ACTIVE
-- mematuhi session rules
+- mematuhi one-active-session-per-Account-per-App
 - mematuhi OTP rules
 - mematuhi Recovery rules
+- mempunyai `account_recovery_tokens`
 - tidak memperkenalkan business tables yang berada di luar scope v0.5.0
 
 ---
 
-# 22. Status Dokumen
+# 23. Migration Table Scope
+
+Migration Account Foundation v0.5.0 akan meliputi 11 relational tables:
+
+1. `accounts`
+2. `account_contacts`
+3. `account_profiles`
+4. `account_passwords`
+5. `account_password_history`
+6. `account_devices`
+7. `app_sessions`
+8. `account_security`
+9. `otp_challenges`
+10. `account_recovery_requests`
+11. `account_recovery_tokens`
+
+Security Activity dan Audit Log kekal sebagai JSONL filesystem dan bukan relational tables.
+
+---
+
+# 24. Status Dokumen
 
 **LOCKED**
 
