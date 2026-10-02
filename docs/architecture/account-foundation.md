@@ -408,9 +408,12 @@ Maksimum resend:
 
 "3 kali"
 
-Selepas maksimum resend dicapai:
+Selepas maksimum 3 resend dicapai:
 
-Pengguna perlu menunggu sehingga hari berikutnya.
+- resend disekat
+- pengguna perlu menunggu 24 jam
+- tempoh 24 jam dikira dari `last_sent_at` resend terakhir
+- selepas tempoh 24 jam tamat, proses resend boleh diteruskan mengikut polisi sistem
 
 OTP Baharu
 
@@ -512,12 +515,11 @@ Status:
 
 11. Security Activity
 
-Security Activity adalah rekod aktiviti keselamatan berkaitan Account.
+Security Activity adalah rekod aktiviti keselamatan bagi pemilik Account.
 
-Security Activity hanya boleh dilihat oleh:
+Security Activity hanya boleh dilihat oleh pemilik Account tersebut.
 
-- pemilik Account
-- user yang berkaitan mengikut authorization yang sah
+Security Activity bukan rekod audit untuk Admin dan tidak menjadi pengganti kepada Audit Log.
 
 Format:
 
