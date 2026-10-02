@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::create('account_security', function (Blueprint $table) {
             $table->char('account_id', 36)->primary();
-            $table->unsignedInteger('failed_attempts');
-            $table->unsignedTinyInteger('security_level');
+            $table->unsignedInteger('failed_attempts')->default(0);
+            $table->unsignedTinyInteger('security_level')->default(0);
             $table->dateTime('locked_until')->nullable();
-            $table->boolean('admin_review_required');
+            $table->boolean('admin_review_required')->default(false);
             $table->dateTime('admin_reviewed_at')->nullable();
             $table->dateTime('updated_at');
 
