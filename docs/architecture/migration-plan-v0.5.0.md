@@ -1,52 +1,41 @@
-# ODP Migration Plan — Account Foundation
+# ODP — Migration Plan v0.5.0
 
-## Status
-
-DRAFT
-
-## Versi
-
-v0.5.0 — Asas Akaun dan Pengesahan
-
-## Tujuan
-
-Dokumen ini mentakrifkan urutan, struktur dan peraturan migration database untuk Account Foundation v0.5.0.
-
-Migration mesti dilaksanakan berdasarkan:
-
-1. Account Foundation Blueprint
-2. Database Specification v0.5.0
-3. Migration Plan ini
-
-Migration tidak boleh memperkenalkan fungsi atau jadual di luar scope Account Foundation v0.5.0.
+**Status:** DRAFT  
+**Version:** v0.5.0  
+**Scope:** Account Foundation / Database Foundation  
+**Sumber keputusan:** `account-foundation.md`, `database-specification-v0.5.0.md`, `authentication-foundation.md`, `DEVELOPMENT_RULES.md`
 
 ---
 
-# 1. Prinsip Migration
+## 1. Tujuan
 
-Migration Account Foundation mesti:
+Dokumen ini menetapkan pelan pelaksanaan database migration untuk Account Foundation v0.5.0.
 
-- menggunakan MySQL 8.0+
-- menggunakan `CHAR(36)` untuk UUID v7
-- UUID dijana oleh application layer
-- tidak menggunakan database auto-increment sebagai Account ID
-- mematuhi foreign key dependency
-- mematuhi global uniqueness phone/email ACTIVE
-- tidak menggunakan cascade delete terhadap Account
-- tidak menggunakan `ON UPDATE CASCADE` sebagai global rule
-- tidak menyimpan plaintext password
-- tidak menyimpan plaintext OTP
-- tidak menyimpan plaintext Recovery Token
-- mengekalkan Account yang berstatus DELETED
-- tidak memperkenalkan business operational tables
-- boleh dijalankan secara berurutan dari database kosong
-- mempunyai `down()` yang sepadan dengan `up()`
+Migration hanya melaksanakan struktur database yang telah ditetapkan dalam Database Specification v0.5.0.
+
+Dokumen ini tidak boleh memperkenalkan keputusan architecture baharu.
 
 ---
 
-# 2. Migration Scope
+## 2. Prinsip Utama
 
-Migration v0.5.0 hanya merangkumi 11 relational tables:
+Pelaksanaan migration mesti:
+
+1. Mengikut dokumen yang telah LOCKED.
+2. Tidak mengubah keputusan architecture yang telah LOCKED.
+3. Tidak menambah feature di luar scope v0.5.0.
+4. Tidak menghapuskan Laravel default migrations secara andaian.
+5. Tidak menggunakan migration sebagai tempat menetapkan business logic.
+6. Memastikan foreign key dan constraint diuji.
+7. Memastikan fresh migration boleh menghasilkan database yang lengkap.
+8. Memastikan rollback boleh dilakukan dengan betul.
+9. Tidak menggunakan data database sebagai pengganti security policy application layer.
+
+---
+
+## 3. Scope v0.5.0
+
+Migration v0.5.0 melibatkan 11 table berikut:
 
 1. `accounts`
 2. `account_contacts`
@@ -60,70 +49,622 @@ Migration v0.5.0 hanya merangkumi 11 relational tables:
 10. `account_recovery_requests`
 11. `account_recovery_tokens`
 
-Security Activity dan Audit Log tidak dibuat sebagai database table.
+Security Activity dan Audit Log bukan database table dalam scope ini.
 
-Kedua-duanya menggunakan JSONL pada filesystem server seperti yang ditetapkan dalam Database Specification.
-
-Recovery Token disimpan dalam table berasingan:
-
-`account_recovery_tokens`
-
-Recovery Token tidak disimpan di dalam:
-
-`account_recovery_requests`
+Kedua-duanya menggunakan JSONL filesystem storage seperti yang ditetapkan dalam Database Specification.
 
 ---
 
-# 3. Migration Order
+## 4. Migration Order
 
-Urutan rasmi migration ialah:
+Migration mesti dilaksanakan mengikut dependency berikut:
 
-    01 accounts
-    │
-    ├── 02 account_contacts
-    │   └── 09 otp_challenges
-    │
-    ├── 03 account_profiles
-    │
-    ├── 04 account_passwords
-    │
-    ├── 05 account_password_history
-    │
-    ├── 06 account_devices
-    │   └── 07 app_sessions
-    │
-    ├── 08 account_security
-    │
-    └── 10 account_recovery_requests
-        └── 11 account_recovery_tokens
+1. `accounts`
+2. `account_contacts`
+3. `account_profiles`
+4. `account_passwords`
+5. `account_password_history`
+6. `account_devices`
+7. `app_sessions`
+8. `account_security`
+9. `otp_challenges`
+10. `account_recovery_requests`
+11. `account_recovery_tokens`
 
-Dependency utama:
-
-    accounts
-    ├── account_contacts
-    │   └── otp_challenges
-    ├── account_profiles
-    ├── account_passwords
-    ├── account_password_history
-    ├── account_devices
-    │   └── app_sessions
-    ├── account_security
-    └── account_recovery_requests
-        └── account_recovery_tokens
-
-Migration mesti menggunakan timestamp yang memastikan dependency di atas dipenuhi.
+Order ini memastikan parent table tersedia sebelum foreign key digunakan oleh child table.
 
 ---
 
-# 4. Migration Naming
+## 5. Database Engine
 
-Nama migration mesti menggunakan Laravel migration convention.
+Database target:
 
-Format:
+- MySQL 8.0 atau lebih baharu.
 
-    YYYY_MM_DD_HHMMSS_create_accounts_table.php
+Migration tidak boleh bergantung kepada behaviour database yang hanya tersedia pada versi lebih lama atau tidak serasi dengan MySQL 8.0+.
 
-Cadangan urutan nama:
+---
+
+## 6. UUID
+
+Semua primary identifier foundation menggunakan UUID v7.
+
+Format database:
+
+- `CHAR(36)`
+
+UUID dijana oleh application sebelum proses insert.
+
+Database tidak bertanggungjawab menjana identity UUID.
+
+Tiada auto-increment integer digunakan sebagai identity utama untuk table foundation.
+
+---
+
+## 7. Table `accounts`
+
+Table ini merupakan root identity table.
+
+Struktur mesti menyokong:
+
+- account UUID
+- account status
+- timestamps
+- `deactivated_at`
+- `deleted_at`
+
+Status account:
+
+- `ACTIVE`
+- `SUSPENDED`
+- `DEACTIVATED`
+- `DELETED`
+
+Peraturan:
+
+- `DELETED` adalah permanent state.
+- Account yang telah `DELETED` tidak dipadam secara fizikal.
+- UUID account yang telah digunakan tidak boleh digunakan semula.
+
+Migration tidak boleh menambah status lain tanpa keputusan baharu.
+
+---
+
+## 8. Table `account_contacts`
+
+Table ini menyimpan contact identifier account.
+
+Jenis contact:
+
+- `PHONE`
+- `EMAIL`
+
+Status contact:
+
+- `ACTIVE`
+- `RELEASED`
+
+Maklumat utama:
+
+- contact UUID
+- `account_id`
+- type
+- value
+- status
+- verification state
+- `verified_at`
+- `released_at`
+- timestamps
+
+Peraturan:
+
+- Phone menggunakan format E.164.
+- Email dinormalisasi.
+- Satu account hanya boleh mempunyai satu active phone.
+- Satu account hanya boleh mempunyai satu active email.
+- Active phone mesti unik secara global.
+- Active email mesti unik secara global.
+- Contact yang telah `RELEASED` boleh wujud sebagai historical record.
+
+Mekanisme database bagi active uniqueness boleh menggunakan generated column + unique index atau mekanisme MySQL yang setara dan telah diuji.
+
+Migration tidak boleh menganggap contact yang `RELEASED` sebagai unique active contact.
+
+---
+
+## 9. Table `account_profiles`
+
+Setiap account mempunyai profile record.
+
+Maklumat utama:
+
+- `account_id`
+- `display_name`
+- `display_name_changed_at`
+- `profile_photo`
+- timestamps
+
+`account_id` menjadi primary key dan foreign key kepada `accounts`.
+
+Peraturan application layer:
+
+- `display_name` hanya menerima Unicode letters dan spaces.
+- Digit tidak dibenarkan.
+- Special characters tidak dibenarkan.
+- Perubahan display name tertakluk kepada rule 30 hari.
+
+`profile_complete` tidak disimpan sebagai database field.
+
+Profile completeness dikira berdasarkan keadaan data sebenar.
+
+Dokumen architecture tidak menetapkan numeric maximum length untuk display name. Oleh itu migration tidak boleh memperkenalkan angka maksimum baharu sebagai architecture decision.
+
+---
+
+## 10. Table `account_passwords`
+
+Table ini menyimpan password semasa account.
+
+Maklumat utama:
+
+- `account_id`
+- `password_hash`
+- timestamps
+
+Password disimpan sebagai hash sahaja.
+
+Plain-text password tidak boleh disimpan.
+
+Peraturan password application layer:
+
+- 8–12 characters.
+- Mesti mempunyai uppercase.
+- Mesti mempunyai lowercase.
+- Mesti mempunyai number.
+- Symbol tidak diwajibkan.
+
+Password policy bukan tanggungjawab migration.
+
+---
+
+## 11. Table `account_password_history`
+
+Table ini menyimpan historical password hash.
+
+Maklumat utama:
+
+- UUID
+- `account_id`
+- password hash
+- `created_at`
+
+Password history digunakan untuk menghalang password reuse.
+
+Policy v0.5.0:
+
+- Tepat satu password terdahulu dikekalkan.
+
+Migration hanya menyediakan struktur penyimpanan.
+
+Retention behaviour dilaksanakan oleh application/service layer.
+
+---
+
+## 12. Table `account_devices`
+
+Table ini menyimpan device information yang berkaitan dengan account.
+
+Maklumat utama:
+
+- UUID
+- `account_id`
+- `device_identifier`
+- `platform`
+- `device_name`
+- `last_seen_at`
+- timestamps
+
+Device bukan identity.
+
+Account identity kekal berdasarkan `accounts`.
+
+Satu device tidak boleh dianggap sebagai account.
+
+Table ini tidak menggunakan `app` sebagai identity dimension.
+
+---
+
+## 13. Table `app_sessions`
+
+Table ini menyimpan application session.
+
+Maklumat utama:
+
+- UUID
+- `account_id`
+- `device_id` nullable
+- `app`
+- `token_hash`
+- `status`
+- timestamps
+- `revoked_at`
+- `expires_at` nullable
+
+Application values:
+
+- `USER`
+- `RUNNER`
+- `ADMIN`
+
+Session status:
+
+- `ACTIVE`
+- `REVOKED`
+- `EXPIRED`
+
+Peraturan:
+
+- Maksimum satu `ACTIVE` session untuk satu Account + App.
+- User dan Runner boleh mempunyai active session pada masa yang sama kerana ia merupakan app context yang berbeza.
+- Successful login pada app yang sama akan revoke active session terdahulu.
+- Failed login tidak revoke session.
+- Logout revoke current session.
+- Recovery yang berjaya revoke semua active sessions.
+- Security event boleh revoke session.
+
+Session tidak mempunyai:
+
+- inactivity timeout
+- fixed lifetime expiry
+
+`expires_at` tidak digunakan sebagai fixed session lifetime.
+
+Session kekal aktif sehingga logout, revoke, security action atau mekanisme lain yang telah ditetapkan.
+
+Active uniqueness boleh dilaksanakan menggunakan generated column + unique index atau mekanisme MySQL yang setara dan telah diuji.
+
+Sanctum tidak dianggap sebagai automatic replacement kepada `app_sessions`.
+
+---
+
+## 14. Table `account_security`
+
+Table ini menyimpan security state account.
+
+Maklumat utama:
+
+- `account_id`
+- `failed_attempts`
+- `security_level`
+- `locked_until`
+- `admin_review_required`
+- `admin_reviewed_at`
+- `updated_at`
+
+Default:
+
+- `failed_attempts = 0`
+- `security_level = 0`
+- `admin_review_required = false`
+
+Security level:
+
+- `0`
+- `1`
+- `2`
+- `3`
+
+Policy:
+
+### Level 1
+
+Selepas 3 failed login attempts:
+
+- Level 1
+- lock selama 30 minit
+
+### Level 2
+
+Selepas 3 failed attempts seterusnya:
+
+- Level 2
+- lock selama 1 jam
+
+### Level 3
+
+Selepas 3 failed attempts seterusnya:
+
+- Level 3
+- `admin_review_required = true`
+
+Level 3 tidak mempunyai fixed 24-hour automatic unlock.
+
+Successful login pada Level 1 atau Level 2 reset security failure state mengikut policy foundation.
+
+Security lock adalah berasingan daripada Account status.
+
+Security lock tidak menukar account kepada `SUSPENDED` secara automatik.
+
+---
+
+## 15. Table `otp_challenges`
+
+Table ini menyimpan OTP challenge.
+
+Maklumat utama:
+
+- UUID
+- `account_id` nullable
+- `contact_id`
+- `purpose`
+- `code_hash`
+- `attempts`
+- `resend_count`
+- `expires_at`
+- `last_sent_at`
+- `consumed_at`
+- `invalidated_at`
+- `created_at`
+
+OTP purposes:
+
+- `REGISTER`
+- `VERIFY_PHONE`
+- `VERIFY_EMAIL`
+- `CHANGE_PHONE`
+- `CHANGE_EMAIL`
+- `ACCOUNT_RECOVERY`
+
+OTP policy:
+
+- 6 digits.
+- Valid selama 5 minit.
+- Maksimum 3 verification attempts.
+- Resend cooldown 5 minit.
+- Maksimum 3 resends.
+- Selepas 3 resends, perlu tunggu 24 jam dari resend terakhir atau hubungi Admin.
+- OTP baharu akan invalidate OTP lama.
+- OTP disimpan sebagai hash sahaja.
+- OTP mesti bound kepada exact contact.
+
+OTP policy dilaksanakan melalui application/service layer bersama database state.
+
+---
+
+## 16. Table `account_recovery_requests`
+
+Table ini menyimpan recovery request.
+
+Maklumat utama:
+
+- UUID
+- `account_id`
+- `reason`
+- `status`
+- `requested_at`
+- `reviewed_at`
+- `reviewed_by`
+- `recovery_expires_at`
+- `completed_at`
+
+Recovery reasons:
+
+- `EMAIL_INACCESSIBLE`
+- `PHONE_AND_EMAIL_INACCESSIBLE`
+- `OTHER`
+
+Recovery statuses:
+
+- `PENDING`
+- `APPROVED`
+- `REJECTED`
+- `CANCELLED`
+
+Recovery menggunakan Model C:
+
+1. User membuat Recovery Request.
+2. Admin review request.
+3. Admin approve atau reject.
+4. Jika approved, Recovery Mode boleh digunakan.
+5. Recovery Mode mempunyai tempoh 30 minit.
+6. Password ditetapkan oleh user melalui recovery flow.
+7. Admin tidak melihat atau menetapkan password.
+8. Successful recovery revoke semua active sessions.
+9. Account status tidak berubah.
+10. Account `DELETED` tidak boleh dipulihkan.
+
+---
+
+## 17. Table `account_recovery_tokens`
+
+Recovery Token disimpan dalam table berasingan.
+
+Maklumat utama:
+
+- UUID
+- `account_id`
+- `recovery_request_id`
+- `token_hash`
+- `expires_at`
+- `used_at`
+- `created_at`
+
+Peraturan:
+
+- Satu Recovery Request mempunyai satu Recovery Token.
+- Token disimpan sebagai hash sahaja.
+- Token valid selama 30 minit.
+- Token adalah one-time use.
+- Token yang expired tidak boleh digunakan.
+- Token yang telah digunakan tidak boleh digunakan semula.
+- Recovery Request baharu diperlukan untuk mendapatkan token baharu.
+- `recovery_request_id` mesti unique.
+
+Foreign key:
+
+- `account_id` → `accounts`
+- `recovery_request_id` → `account_recovery_requests`
+
+Delete behaviour:
+
+- `ON DELETE RESTRICT`
+
+Migration tidak boleh menggunakan cascade delete untuk Recovery Token.
+
+---
+
+## 18. Foreign Key Strategy
+
+Foreign key mesti menjaga integrity Account Foundation.
+
+Default strategy bagi relationship foundation:
+
+- `ON DELETE RESTRICT`
+
+Migration tidak boleh menambah `ON DELETE CASCADE` secara global.
+
+`ON UPDATE CASCADE` juga tidak boleh ditambah sebagai global rule.
+
+Jika behaviour foreign key tertentu diperlukan kemudian, ia mesti melalui keputusan architecture/database yang berasingan.
+
+---
+
+## 19. Constraint Strategy
+
+Constraint database hendaklah digunakan untuk perkara yang memang merupakan database integrity rule.
+
+Antara constraint yang perlu diuji:
+
+- Primary key.
+- Foreign key.
+- Unique constraint.
+- Active contact uniqueness.
+- Active session uniqueness.
+- Recovery request → recovery token one-to-one.
+- Valid status representation.
+- Valid enum/value representation yang ditetapkan oleh specification.
+
+Application policy yang kompleks tidak boleh dipaksa secara tidak perlu ke dalam migration.
+
+---
+
+## 20. Active Contact Uniqueness
+
+Requirement:
+
+### Per Account
+
+Maksimum:
+
+- satu active phone
+- satu active email
+
+### Global
+
+Active contact value mesti unique berdasarkan type.
+
+Contoh:
+
+Phone yang ACTIVE tidak boleh digunakan oleh dua account.
+
+Email yang ACTIVE tidak boleh digunakan oleh dua account.
+
+Contact RELEASED tidak menghalang contact tersebut daripada digunakan semula selepas proses release yang sah.
+
+Implementation boleh menggunakan:
+
+- generated column + unique index
+
+atau
+
+- mekanisme MySQL yang setara.
+
+Implementation mesti diuji pada MySQL 8.0+.
+
+---
+
+## 21. Active Session Uniqueness
+
+Requirement:
+
+Satu Account + satu App hanya boleh mempunyai satu `ACTIVE` session.
+
+Contoh:
+
+- Account A + USER → maksimum 1 ACTIVE.
+- Account A + RUNNER → maksimum 1 ACTIVE.
+- Account A + ADMIN → maksimum 1 ACTIVE.
+
+User dan Runner boleh aktif serentak kerana app context berbeza.
+
+Implementation boleh menggunakan generated column + unique index atau mekanisme MySQL yang setara.
+
+Implementation mesti diuji.
+
+---
+
+## 22. JSONL Security Activity
+
+Security Activity bukan table database.
+
+Storage:
+
+- JSONL
+- private server filesystem
+- application-layer access
+- retention 3 bulan
+
+Security Activity mesti dipisahkan secara fizikal daripada Audit Log.
+
+Security Activity bukan public data.
+
+User/owner access sahaja mengikut architecture foundation.
+
+---
+
+## 23. JSONL Audit Log
+
+Audit Log bukan table database.
+
+Storage:
+
+- JSONL
+- separate server filesystem
+- append-only
+- minimum retention 7 tahun
+- monthly files
+- hash chain
+- monthly SHA-256 fingerprint
+
+Access:
+
+- Root Admin / Kapten sahaja.
+
+Audit Log mesti kekal berasingan daripada Security Activity.
+
+---
+
+## 24. Laravel Default Migrations
+
+Laravel default migrations yang telah sedia ada tidak boleh:
+
+- dipadam
+- diubah
+- diganti
+
+secara andaian.
+
+Sebarang keputusan untuk mengubah Laravel default migration mesti dibuat sebagai keputusan berasingan.
+
+Migration Account Foundation hendaklah diurus secara terkawal tanpa merosakkan skeleton Laravel yang sedia ada.
+
+---
+
+## 25. Migration Naming
+
+Migration file menggunakan Laravel standard timestamp naming.
+
+Contoh urutan:
 
     2026_10_02_000001_create_accounts_table.php
     2026_10_02_000002_create_account_contacts_table.php
@@ -137,1545 +678,226 @@ Cadangan urutan nama:
     2026_10_02_000010_create_account_recovery_requests_table.php
     2026_10_02_000011_create_account_recovery_tokens_table.php
 
-Timestamp sebenar boleh disesuaikan dengan keadaan repository ketika implementation.
+Timestamp sebenar boleh disesuaikan dengan keadaan repository semasa implementation.
 
-Yang penting ialah dependency order mesti dikekalkan.
-
----
-
-# 5. UUID Rule
-
-Semua primary key UUID v7 dalam Account Foundation menggunakan:
-
-    CHAR(36)
-
-UUID dijana oleh application layer sebelum insert.
-
-Migration tidak boleh:
-
-- menggunakan `$table->id()`
-- menggunakan auto increment sebagai identity Account
-- menggunakan database-generated identity sebagai pengganti UUID v7
-- menjadikan device identifier sebagai Account ID
-
-Contoh column:
-
-    $table->char('id', 36)->primary();
-
-Untuk foreign key UUID:
-
-    $table->char('account_id', 36);
-
-Application layer bertanggungjawab memastikan UUID yang diberikan ialah UUID v7.
+Order dependency mesti dikekalkan.
 
 ---
 
-# 6. Migration 01 — accounts
+## 26. Migration Implementation Rule
 
-## Table
+Migration implementation mesti:
 
-`accounts`
+1. Mengikuti schema specification.
+2. Tidak menambah field yang tidak ditetapkan.
+3. Tidak menghapus field yang ditetapkan.
+4. Tidak menambah business logic.
+5. Tidak menambah architecture baharu.
+6. Tidak mengubah naming convention yang telah dipersetujui.
+7. Tidak menambah dependency baharu tanpa keputusan.
+8. Tidak mengubah Laravel skeleton secara senyap.
 
-## Tujuan
-
-Menyimpan identity utama Account.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| status | VARCHAR | NO | ACTIVE |
-| created_at | DATETIME | NO | — |
-| updated_at | DATETIME | NO | — |
-| deactivated_at | DATETIME | YES | NULL |
-| deleted_at | DATETIME | YES | NULL |
-
-## Primary Key
-
-`id`
-
-## Status Values
-
-    ACTIVE
-    SUSPENDED
-    DEACTIVATED
-    DELETED
-
-Status validation utama dilakukan pada application layer.
-
-Database implementation tidak boleh mengubah architecture status yang telah ditetapkan.
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    INDEX (status)
-
-## Account Lifecycle
-
-Account yang berstatus `DELETED` tidak boleh dipadam secara fizikal sebagai sebahagian daripada lifecycle normal.
-
-`DELETED` adalah status kekal.
-
-Account ID tidak boleh digunakan semula.
-
-Account `DELETED` tidak boleh dipulihkan melalui Account Recovery.
+Jika implementation memerlukan keputusan yang belum ditetapkan, development mesti berhenti pada titik tersebut dan keputusan perlu dibuat dahulu.
 
 ---
 
-# 7. Migration 02 — account_contacts
+## 27. Fresh Migration Test
 
-## Table
+Migration mesti diuji daripada database kosong.
 
-`account_contacts`
+Test:
 
-## Tujuan
-
-Menyimpan phone dan email yang berkaitan dengan Account.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | NO | — |
-| type | VARCHAR | NO | — |
-| value | VARCHAR | NO | — |
-| status | VARCHAR | NO | ACTIVE |
-| is_verified | BOOLEAN | NO | FALSE |
-| verified_at | DATETIME | YES | NULL |
-| released_at | DATETIME | YES | NULL |
-| created_at | DATETIME | NO | — |
-| updated_at | DATETIME | NO | — |
-
-## Primary Key
-
-`id`
-
-## Foreign Key
-
-`account_id → accounts.id`
-
-## Foreign Key Behaviour
-
-Untuk hubungan kepada Account:
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Type Values
-
-    PHONE
-    EMAIL
-
-## Status Values
-
-    ACTIVE
-    RELEASED
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    INDEX (account_id)
-    INDEX (type)
-    INDEX (status)
-    INDEX (account_id, type, status)
-
-## Active Contact Uniqueness
-
-Business rules:
-
-    ACTIVE PHONE → unique seluruh sistem
-    ACTIVE EMAIL → unique seluruh sistem
-
-Satu Account juga tidak boleh mempunyai lebih daripada:
-
-    1 ACTIVE PHONE
-    1 ACTIVE EMAIL
-
-Contact `RELEASED` boleh digunakan semula selepas verification berjaya.
-
-## Database Implementation
-
-MySQL 8.0 tidak menyediakan partial unique index seperti sesetengah database lain.
-
-Database implementation mesti menggunakan mekanisme MySQL 8.0+ yang boleh menguatkuasakan:
-
-    ACTIVE PHONE → global unique
-    ACTIVE EMAIL → global unique
-
-serta:
-
-    1 ACTIVE PHONE → maksimum setiap Account
-    1 ACTIVE EMAIL → maksimum setiap Account
-
-Implementation sebenar boleh menggunakan generated column + unique index atau mekanisme MySQL 8.0+ yang setara dan telah diuji.
-
-Business rule tidak boleh diubah kerana limitation implementation.
+1. Database kosong.
+2. Jalankan migration.
+3. Semua 11 table berjaya dicipta.
+4. Semua foreign key berjaya.
+5. Semua required constraint berjaya.
+6. Schema dibandingkan dengan Database Specification.
+7. Tiada table foundation yang hilang.
+8. Tiada field tambahan yang tidak diluluskan.
 
 ---
 
-# 8. Migration 03 — account_profiles
+## 28. Rollback Test
 
-## Table
+Setiap migration mesti menyokong rollback yang betul.
 
-`account_profiles`
+Test:
 
-## Tujuan
+1. Jalankan semua migration.
+2. Jalankan rollback.
+3. Pastikan dependency foreign key tidak menyebabkan rollback failure.
+4. Pastikan table kembali ke keadaan sebelum migration.
+5. Jalankan migration semula.
 
-Menyimpan profil asas Account.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| account_id | CHAR(36) | NO | — |
-| display_name | VARCHAR | YES | NULL |
-| display_name_changed_at | DATETIME | YES | NULL |
-| profile_photo | VARCHAR | YES | NULL |
-| created_at | DATETIME | NO | — |
-| updated_at | DATETIME | NO | — |
-
-## Primary Key
-
-`account_id`
-
-## Foreign Key
-
-`account_id → accounts.id`
-
-## Foreign Key Behaviour
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Constraint
-
-Satu Account hanya mempunyai satu profile.
-
-`display_name` tidak unique.
-
-`profile_complete` tidak boleh menjadi database column.
-
-## Application Rules
-
-Application layer mengawal:
-
-- Unicode letters + spaces
-- maksimum panjang nama
-- 30-day display name change rule
-- profile completeness
-
-Migration tidak menyimpan:
-
-`profile_complete`
+Rollback tidak boleh meninggalkan schema separuh rosak.
 
 ---
 
-# 9. Migration 04 — account_passwords
+## 29. Constraint Test
 
-## Table
+Test minimum mesti meliputi:
 
-`account_passwords`
+### Accounts
 
-## Tujuan
+- UUID uniqueness.
+- Account status validation.
+- Deleted account retention behaviour.
 
-Menyimpan password semasa Account dalam bentuk hash.
+### Contacts
 
-## Columns
+- Active phone uniqueness.
+- Active email uniqueness.
+- One active phone per account.
+- One active email per account.
+- Released contact behaviour.
 
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| account_id | CHAR(36) | NO | — |
-| password_hash | VARCHAR | NO | — |
-| created_at | DATETIME | NO | — |
-| updated_at | DATETIME | NO | — |
+### Sessions
 
-## Primary Key
+- One active session per Account + App.
+- User and Runner simultaneous sessions.
+- Revoked session behaviour.
+- Expired session state.
 
-`account_id`
+### Recovery
 
-## Foreign Key
+- One Recovery Token per Recovery Request.
+- Recovery Token uniqueness.
+- Token foreign key integrity.
+- Used token state.
+- Expired token state.
 
-`account_id → accounts.id`
+### Foreign Keys
 
-## Foreign Key Behaviour
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Rules
-
-Migration tidak menyimpan:
-
-- plaintext password
-- confirmation password
-- password requirement state
-
-Password policy dikawal application layer.
-
-## Password Policy
-
-Application layer mesti memastikan:
-
-- panjang 8–12 aksara
-- mempunyai huruf besar
-- mempunyai huruf kecil
-- mempunyai nombor
-- simbol tidak diwajibkan
+- Invalid account references rejected.
+- Invalid contact references rejected.
+- Invalid recovery references rejected.
+- RESTRICT behaviour tested.
 
 ---
 
-# 10. Migration 05 — account_password_history
-
-## Table
-
-`account_password_history`
-
-## Tujuan
-
-Menyimpan satu password terdahulu untuk menghalang password reuse.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | NO | — |
-| password_hash | VARCHAR | NO | — |
-| created_at | DATETIME | NO | — |
-
-## Primary Key
-
-`id`
-
-## Foreign Key
-
-`account_id → accounts.id`
-
-## Foreign Key Behaviour
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Index
-
-    PRIMARY KEY (id)
-    INDEX (account_id)
-
-## Password History Rule
-
-Sistem hanya mengekalkan:
-
-`1 password terdahulu`
-
-Password history disimpan sebagai hash sahaja.
-
-Application/service layer bertanggungjawab memastikan hanya satu previous password dikekalkan.
-
----
-
-# 11. Migration 06 — account_devices
-
-## Table
-
-`account_devices`
-
-## Tujuan
-
-Menyimpan konteks device yang digunakan oleh Account.
-
-Device bukan identity.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | NO | — |
-| device_identifier | VARCHAR | NO | — |
-| platform | VARCHAR | YES | NULL |
-| device_name | VARCHAR | YES | NULL |
-| last_seen_at | DATETIME | YES | NULL |
-| created_at | DATETIME | NO | — |
-| updated_at | DATETIME | NO | — |
-
-## Primary Key
-
-`id`
-
-## Foreign Key
-
-`account_id → accounts.id`
-
-## Foreign Key Behaviour
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    INDEX (account_id)
-    INDEX (device_identifier)
-
-## Important Rule
-
-Field berikut TIDAK boleh dimasukkan:
-
-`app`
-
-App context hanya berada dalam:
-
-`app_sessions.app`
-
-Device identifier bukan permanent identity Account.
-
-Device boleh digunakan untuk lebih daripada satu App context melalui session.
-
----
-
-# 12. Migration 07 — app_sessions
-
-## Table
-
-`app_sessions`
-
-## Tujuan
-
-Menyimpan authentication session mengikut aplikasi.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | NO | — |
-| device_id | CHAR(36) | YES | NULL |
-| app | VARCHAR | NO | — |
-| token_hash | VARCHAR | NO | — |
-| status | VARCHAR | NO | ACTIVE |
-| created_at | DATETIME | NO | — |
-| last_used_at | DATETIME | YES | NULL |
-| revoked_at | DATETIME | YES | NULL |
-| expires_at | DATETIME | YES | NULL |
-
-## Primary Key
-
-`id`
-
-## Foreign Keys
-
-    account_id → accounts.id
-    device_id → account_devices.id
-
-## Foreign Key Behaviour
-
-Untuk `account_id`:
-
-`ON DELETE RESTRICT`
-
-Untuk `device_id`:
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## App Values
-
-    USER
-    RUNNER
-    ADMIN
-
-## Status Values
-
-    ACTIVE
-    REVOKED
-    EXPIRED
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    INDEX (account_id)
-    INDEX (device_id)
-    INDEX (app)
-    INDEX (status)
-    INDEX (account_id, app, status)
-
-## Session Uniqueness
-
-Business rule:
-
-`maximum 1 ACTIVE session per Account + App`
-
-Contoh yang sah:
-
-    Account A + USER   = ACTIVE
-    Account A + RUNNER = ACTIVE
-
-Contoh yang tidak sah:
-
-    Account A + USER = ACTIVE
-    Account A + USER = ACTIVE
-
-Application layer mesti memastikan login berjaya pada App yang sama akan revoke session lama.
-
-Database implementation mesti menguatkuasakan integrity rule tersebut.
-
-Implementation sebenar boleh menggunakan generated column + unique index atau mekanisme MySQL 8.0+ yang setara dan telah diuji.
-
-## Session Lifetime
-
-ODP tidak menggunakan inactivity timeout.
-
-ODP juga tidak menggunakan fixed session lifetime untuk session biasa.
-
-`expires_at` kekal nullable untuk keadaan yang secara khusus memerlukan expiry, tetapi session biasa tidak diberikan fixed expiry.
-
-Session biasa kekal `ACTIVE` sehingga:
-
-- logout
-- revoke
-- security event
-- successful recovery
-- tindakan lain yang ditetapkan architecture
-
-Tidak aktif untuk tempoh yang panjang tidak menyebabkan session tamat.
-
----
-
-# 13. Migration 08 — account_security
-
-## Table
-
-`account_security`
-
-## Tujuan
-
-Menyimpan state login security dan escalation.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| account_id | CHAR(36) | NO | — |
-| failed_attempts | INTEGER | NO | 0 |
-| security_level | INTEGER | NO | 0 |
-| locked_until | DATETIME | YES | NULL |
-| admin_review_required | BOOLEAN | NO | FALSE |
-| admin_reviewed_at | DATETIME | YES | NULL |
-| updated_at | DATETIME | NO | — |
-
-## Primary Key
-
-`account_id`
-
-## Foreign Key
-
-`account_id → accounts.id`
-
-## Foreign Key Behaviour
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Validation
-
-Application layer mesti memastikan:
-
-    security_level = 0, 1, 2 atau 3
-    failed_attempts >= 0
-
-## Login Security Escalation
-
-### Level 0
-
-Normal.
-
-### Level 1
-
-Selepas 3 percubaan login gagal:
-
-    security_level = 1
-    locked_until = +30 minit
-
-### Level 2
-
-Selepas 3 percubaan gagal seterusnya:
-
-    security_level = 2
-    locked_until = +1 jam
-
-### Level 3
-
-Selepas 3 percubaan gagal seterusnya:
-
-    security_level = 3
-    admin_review_required = TRUE
-
-Level 3 tidak mempunyai fixed 24-hour timer.
-
-Successful login pada Level 1 atau Level 2 reset escalation mengikut authentication rules.
-
-Level 3 memerlukan Admin Review.
-
-Security lock adalah berasingan daripada:
-
-`accounts.status`
-
----
-
-# 14. Migration 09 — otp_challenges
-
-## Table
-
-`otp_challenges`
-
-## Tujuan
-
-Menyimpan state OTP tanpa menyimpan OTP plaintext.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | YES | NULL |
-| contact_id | CHAR(36) | NO | — |
-| purpose | VARCHAR | NO | — |
-| code_hash | VARCHAR | NO | — |
-| attempts | INTEGER | NO | 0 |
-| resend_count | INTEGER | NO | 0 |
-| expires_at | DATETIME | NO | — |
-| last_sent_at | DATETIME | NO | — |
-| consumed_at | DATETIME | YES | NULL |
-| invalidated_at | DATETIME | YES | NULL |
-| created_at | DATETIME | NO | — |
-
-## Primary Key
-
-`id`
-
-## Foreign Keys
-
-    account_id → accounts.id
-    contact_id → account_contacts.id
-
-## Foreign Key Behaviour
-
-Untuk `account_id`:
-
-`ON DELETE RESTRICT`
-
-Untuk `contact_id`:
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    INDEX (account_id)
-    INDEX (contact_id)
-    INDEX (purpose)
-    INDEX (expires_at)
-    INDEX (contact_id, purpose)
-
-## Purpose Values
-
-    REGISTER
-    VERIFY_PHONE
-    VERIFY_EMAIL
-    CHANGE_PHONE
-    CHANGE_EMAIL
-    ACCOUNT_RECOVERY
-
-## OTP Rules
-
-Application layer mesti menguatkuasakan:
-
-- OTP 6 digit
-- validity 5 minit
-- maksimum 3 verification attempts
-- resend cooldown 5 minit
-- maksimum 3 resend
-- OTP baharu invalidate OTP lama untuk purpose/contact berkaitan
-- OTP terikat kepada contact yang tepat
-- OTP plaintext tidak disimpan
-
-## Resend Rule
-
-Selepas maksimum 3 resend:
-
-    resend disekat
-    ↓
-    tunggu 24 jam dari resend terakhir
-    ↓
-    resend boleh digunakan semula
-
-Tempoh 24 jam adalah rolling period.
-
-Bukan reset pada 00:00.
-
-Timezone tidak digunakan untuk menentukan tempoh 24 jam tersebut.
-
-User juga boleh menghubungi Admin untuk bantuan mengikut authentication rules.
-
----
-
-# 15. Migration 10 — account_recovery_requests
-
-## Table
-
-`account_recovery_requests`
-
-## Tujuan
-
-Menyimpan Recovery Request untuk Account Recovery Model C.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | NO | — |
-| reason | VARCHAR | NO | — |
-| status | VARCHAR | NO | PENDING |
-| requested_at | DATETIME | NO | — |
-| reviewed_at | DATETIME | YES | NULL |
-| reviewed_by | CHAR(36) | YES | NULL |
-| recovery_expires_at | DATETIME | YES | NULL |
-| completed_at | DATETIME | YES | NULL |
-
-## Primary Key
-
-`id`
-
-## Foreign Key
-
-`account_id → accounts.id`
-
-## Foreign Key Behaviour
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    INDEX (account_id)
-    INDEX (status)
-    INDEX (requested_at)
-    INDEX (account_id, status)
-
-## Reason Values
-
-    EMAIL_INACCESSIBLE
-    PHONE_AND_EMAIL_INACCESSIBLE
-    OTHER
-
-## Status Values
-
-    PENDING
-    APPROVED
-    REJECTED
-    CANCELLED
-
-## Recovery Rules
-
-Recovery workflow:
-
-    PENDING
-    ↓
-    Admin Review
-    ↓
-    APPROVED
-    ↓
-    Recovery Mode 30 minit
-    ↓
-    Password Recovery
-
-Admin:
-
-- boleh approve
-- boleh reject
-- tidak melihat password
-- tidak menetapkan password
-
-Account status tidak berubah semasa recovery.
-
-Account `DELETED` tidak boleh recover.
-
-Successful recovery mesti revoke semua ACTIVE sessions.
-
-Recovery Token tidak disimpan dalam table ini.
-
----
-
-# 16. Migration 11 — account_recovery_tokens
-
-## Table
-
-`account_recovery_tokens`
-
-## Tujuan
-
-Menyimpan Recovery Token secara relational selepas Recovery Request diluluskan.
-
-## Columns
-
-| Column | Type | Null | Default |
-|---|---|---:|---|
-| id | CHAR(36) | NO | — |
-| account_id | CHAR(36) | NO | — |
-| recovery_request_id | CHAR(36) | NO | — |
-| token_hash | VARCHAR | NO | — |
-| expires_at | DATETIME | NO | — |
-| used_at | DATETIME | YES | NULL |
-| created_at | DATETIME | NO | — |
-
-## Primary Key
-
-`id`
-
-## Foreign Keys
-
-    account_id → accounts.id
-    recovery_request_id → account_recovery_requests.id
-
-## Foreign Key Behaviour
-
-Untuk `account_id`:
-
-`ON DELETE RESTRICT`
-
-Untuk `recovery_request_id`:
-
-`ON DELETE RESTRICT`
-
-Tiada `ON DELETE CASCADE`.
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-## Index
-
-Minimum:
-
-    PRIMARY KEY (id)
-    UNIQUE (recovery_request_id)
-    INDEX (account_id)
-    INDEX (expires_at)
-
-## Recovery Token Rules
-
-Recovery Token mesti:
-
-- dijana secara random
-- disimpan sebagai hash sahaja
-- tidak menyimpan plaintext
-- terikat kepada `account_id`
-- terikat kepada `recovery_request_id`
-- sah selama 30 minit
-- hanya boleh digunakan sekali
-- token yang telah digunakan tidak boleh digunakan semula
-- token yang telah tamat tempoh tidak boleh digunakan
-- Recovery Request baharu diperlukan untuk token baharu
-- Account `DELETED` tidak boleh menggunakan Recovery Token
-- successful recovery revoke semua ACTIVE sessions
-
-## Relationship Rule
-
-Satu Recovery Request hanya mempunyai satu Recovery Token.
-
-Database mesti menguatkuasakan:
-
-`UNIQUE (recovery_request_id)`
-
----
-
-# 17. Security Activity Storage
-
-Security Activity tidak disimpan dalam relational database.
-
-Storage:
-
-`Server Filesystem`
-
-Format:
-
-`JSONL`
-
-Retention:
-
-`3 bulan`
-
-Keperluan:
-
-- private
-- bukan public web directory
-- access melalui application layer
-- user/owner boleh melihat Security Activity sendiri mengikut authorization
-- secara fizikal berasingan daripada Audit Log
-
-Struktur folder dan nama fail akan ditetapkan semasa implementation.
-
----
-
-# 18. Audit Log Storage
-
-Audit Log tidak disimpan dalam relational database.
-
-Storage:
-
-`Server Filesystem`
-
-Format:
-
-`JSONL`
-
-Retention:
-
-`minimum 7 tahun`
-
-Keperluan:
-
-- append-only
-- monthly files
-- hash chain
-- monthly SHA-256 fingerprint
-- secara fizikal berasingan daripada Security Activity
-- Root Admin / Kapten sahaja melalui application layer
-- aktiviti export dan logging berkaitan turut diaudit
-
-Struktur folder, nama fail, record format dan mekanisme hash chain akan ditetapkan semasa implementation.
-
----
-
-# 19. Foreign Key Strategy
-
-Foreign key Account Foundation mesti mengekalkan relational integrity dan tidak boleh menyebabkan penghapusan Account secara cascade.
-
-Untuk hubungan kepada Account:
-
-`ON DELETE RESTRICT`
-
-Tiada:
-
-`ON DELETE CASCADE`
-
-`ON UPDATE CASCADE` tidak ditetapkan sebagai global rule.
-
-Setiap foreign key mesti menentukan behaviour yang diperlukan secara explicit semasa implementation.
-
-Sebab:
-
-- Account DELETED mesti kekal
-- Account ID tidak boleh digunakan semula
-- sejarah Account mesti dikekalkan
-- auditability mesti dikekalkan
-
----
-
-# 20. Default Laravel Migrations
-
-Repository semasa mungkin mempunyai migration Laravel default seperti:
-
-    2014_10_12_000000_create_users_table.php
-    2014_10_12_100000_create_password_reset_tokens_table.php
-    2019_12_14_000001_create_personal_access_tokens_table.php
-
-Migration Account Foundation v0.5.0 tidak boleh terus memadam atau mengubah migration tersebut berdasarkan andaian.
-
-Status sementara:
-
-`EXISTING LARAVEL SKELETON`
-
-Keputusan terhadap migration tersebut hendaklah dibuat secara berasingan.
-
-Pilihan yang mungkin pada masa akan datang:
-
-- kekalkan
-- hentikan penggunaan
-- gantikan
-- migrate data
-- buang selepas architecture migration selesai
-
-Tiada pilihan di atas dianggap LOCKED dalam Migration Plan ini.
-
-Jangan mencampurkan migration legacy tersebut dengan Account Foundation tanpa keputusan architecture baharu.
-
----
-
-# 21. Laravel Sanctum
-
-Jika repository mempunyai dependency:
-
-`laravel/sanctum`
-
-Sanctum tidak boleh dianggap sebagai pengganti automatik kepada:
-
-`app_sessions`
-
-Account Foundation menggunakan session architecture yang telah LOCKED.
-
-Jika Sanctum digunakan sebagai implementation detail, implementation tersebut mesti mematuhi:
-
-- Account identity
-- App context
-- session status
-- one ACTIVE session per Account + App
-- revoke rules
-- recovery rules
-- security rules
-
-Framework dependency tidak boleh menentukan architecture Account Foundation.
-
----
-
-# 22. Migration Dependency Check
-
-Sebelum migration dijalankan, dependency mesti berada dalam urutan berikut:
-
-    accounts
-        ↓
-    account_contacts
-    account_profiles
-    account_passwords
-    account_password_history
-    account_devices
-    account_security
-        ↓
-    app_sessions
-    otp_challenges
-    account_recovery_requests
-        ↓
-    account_recovery_tokens
-
-Secara khusus:
-
-    accounts
-    ↓
-    account_contacts
-    ↓
-    otp_challenges
-
-dan:
-
-    accounts
-    ↓
-    account_devices
-    ↓
-    app_sessions
-
-dan:
-
-    accounts
-    ↓
-    account_recovery_requests
-    ↓
-    account_recovery_tokens
-
-Migration yang mempunyai foreign key kepada table yang belum wujud tidak boleh dijalankan.
-
----
-
-# 23. Fresh Database Test
-
-Migration mesti diuji menggunakan database kosong.
-
-Command:
-
-    php artisan migrate:fresh
-
-Expected:
-
-- semua migration berjaya
-- tiada foreign key error
-- tiada duplicate index error
-- tiada duplicate constraint error
-- semua 11 table Account Foundation wujud
-- semua foreign key wujud
-- semua required index wujud
-
----
-
-# 24. Migration Rollback Test
-
-Migration mesti diuji dengan:
-
-    php artisan migrate:rollback
-
-Kemudian:
-
-    php artisan migrate
-
-Expected:
-
-- rollback berjaya
-- migration boleh dijalankan semula
-- schema kembali kepada keadaan yang dijangka
-- tiada table orphan
-- tiada foreign key orphan
-- tiada dependency order error
-
----
-
-# 25. Schema Validation
-
-Selepas migration, schema mesti diperiksa.
-
-## Tables
-
-Semua table berikut mesti wujud:
-
-    accounts
-    account_contacts
-    account_profiles
-    account_passwords
-    account_password_history
-    account_devices
-    app_sessions
-    account_security
-    otp_challenges
-    account_recovery_requests
-    account_recovery_tokens
-
-## Primary Keys
-
-Setiap table mesti mempunyai primary key seperti yang ditetapkan.
-
-## Foreign Keys
-
-Semua relationship mesti wujud dan menggunakan behaviour yang betul.
-
-## UUID
-
-Semua UUID field mesti menggunakan:
-
-`CHAR(36)`
-
-## Account Identity
-
-`accounts.id`
-
-mesti bukan auto increment.
-
-## Security
-
-Tiada plaintext untuk:
-
-    password
-    OTP
-    Recovery Token
-    session secret
-
-boleh disimpan dalam database.
-
----
-
-# 26. Constraint Validation
-
-Migration implementation mesti diuji untuk memastikan:
-
-## Account
-
-- Account ID unik
-- Account ID bukan auto increment
-- Account status mempunyai default `ACTIVE`
-- Account `DELETED` tidak dipadam secara cascade
-
-## Contacts
-
-- ACTIVE phone tidak boleh duplicate
-- ACTIVE email tidak boleh duplicate
-- satu Account tidak boleh mempunyai lebih daripada satu ACTIVE PHONE
-- satu Account tidak boleh mempunyai lebih daripada satu ACTIVE EMAIL
-- RELEASED contact boleh digunakan semula
-- ACTIVE phone global uniqueness berfungsi
-- ACTIVE email global uniqueness berfungsi
-
-## Profile
-
-- satu profile untuk satu Account
-- display_name tidak unique
-- tiada `profile_complete`
-
-## Password
-
-- satu current password bagi Account
-- password hash sahaja
-
-## Password History
-
-- history berkaitan Account
-- satu previous password sahaja dikekalkan oleh application logic
-
-## Devices
-
-- device berkaitan Account
-- device bukan identity
-- `app` tidak wujud dalam `account_devices`
-
-## Sessions
-
-- session berkaitan Account
-- session boleh berkaitan device
-- App context berada pada session
-- maksimum satu ACTIVE session per Account + App
-- User dan Runner boleh mempunyai ACTIVE session serentak
-
-## Security
-
-- satu security state per Account
-- security level 0–3
-
-## OTP
-
-- OTP berkaitan contact
-- OTP boleh berkaitan Account atau belum mempunyai Account
-- OTP hash sahaja
-- resend counter tersedia
-- expiry tersedia
-
-## Recovery Request
-
-- recovery request berkaitan Account
-- reason mengikut specification
-- status mengikut specification
-- Recovery Mode expiry tersedia
-
-## Recovery Token
-
-- Recovery Token berkaitan Account
-- Recovery Token berkaitan Recovery Request
-- `recovery_request_id` unique
-- token hash sahaja
-- token expiry tersedia
-- token used state tersedia
-
----
-
-# 27. Data Integrity Rules
-
-Migration tidak boleh menghasilkan keadaan berikut:
-
-`account_profiles.account_id`
-
-tanpa Account yang sepadan.
-
-`account_passwords.account_id`
-
-tanpa Account yang sepadan.
-
-`account_password_history.account_id`
-
-tanpa Account yang sepadan.
-
-`account_devices.account_id`
-
-tanpa Account yang sepadan.
-
-`app_sessions.account_id`
-
-tanpa Account yang sepadan.
-
-`app_sessions.device_id`
-
-tanpa device yang sepadan apabila `device_id` digunakan.
-
-`account_security.account_id`
-
-tanpa Account yang sepadan.
-
-`otp_challenges.contact_id`
-
-tanpa contact yang sepadan.
-
-`account_recovery_requests.account_id`
-
-tanpa Account yang sepadan.
-
-`account_recovery_tokens.account_id`
-
-tanpa Account yang sepadan.
-
-`account_recovery_tokens.recovery_request_id`
-
-tanpa Recovery Request yang sepadan.
-
-Recovery Token mesti mempunyai hubungan kepada Account dan Recovery Request.
-
----
-
-# 28. Database Layer vs Application Layer
-
-Tidak semua security/business rules perlu dipaksa melalui database.
-
-## Database bertanggungjawab untuk
-
-- primary key
-- foreign key
-- basic uniqueness
-- active contact uniqueness
-- active session uniqueness
-- recovery request token uniqueness
-- basic nullability
-- data type
-- relational integrity
-- basic defaults
-- indexes
-
-## Application Layer bertanggungjawab untuk
-
-- UUID v7 generation
-- password policy
-- password history rotation
-- display name validation
-- 30-day display name rule
-- profile completeness
-- OTP generation
-- OTP hashing
-- OTP verification
-- OTP expiry
-- OTP attempt limit
-- OTP resend cooldown
-- OTP resend rolling 24 hours
-- login escalation
-- session lifecycle
+## 30. Security Schema Test
+
+Security-related schema mesti diuji bagi memastikan database mampu menyimpan state yang diperlukan untuk:
+
+- failed login attempts
+- security level
+- temporary lock
+- admin review requirement
+- OTP challenge state
+- recovery request state
+- recovery token state
 - session revocation
-- recovery workflow
-- Recovery Token generation
-- Recovery Token validation
-- Security Activity
-- Audit Log
-- authorization
 
-Migration tidak boleh memasukkan business logic yang sepatutnya berada dalam application/service layer.
+Application policy tetap diuji pada service/authentication layer.
 
 ---
 
-# 29. Migration Tidak Boleh Mengandungi
+## 31. Recovery Token Integrity Test
 
-Migration Account Foundation v0.5.0 tidak boleh menambah jadual untuk:
+Test khusus untuk `account_recovery_tokens` wajib dibuat.
 
-    vendors
-    orders
-    jobs
-    deliveries
-    dispatches
-    matching
-    vehicles
-    runner_onboarding
-    payments
-    wallets
-    fares
-    personal_shopper_operations
-    business_modules
+Minimum:
 
-Perkara tersebut ialah FUTURE.
-
-Ia tidak termasuk dalam Account Foundation v0.5.0.
+1. Recovery Request boleh mempunyai satu token.
+2. Recovery Request kedua tidak boleh menghasilkan dua active token untuk request yang sama.
+3. Token disimpan sebagai hash.
+4. Token expired tidak boleh digunakan.
+5. Token used tidak boleh digunakan semula.
+6. Token baharu memerlukan Recovery Request baharu.
+7. Foreign key kepada Account mesti valid.
+8. Foreign key kepada Recovery Request mesti valid.
+9. Delete parent mesti mematuhi RESTRICT.
 
 ---
 
-# 30. Implementation Sequence
+## 32. Scope Exclusions
 
-Selepas Migration Plan ini LOCKED:
+Perkara berikut bukan sebahagian daripada migration v0.5.0:
 
-    Migration Plan
-    ↓
-    Create migrations
-    ↓
-    Run migration
-    ↓
-    Schema inspection
-    ↓
-    Migration tests
-    ↓
-    Fix migration issues
-    ↓
-    Commit
-    ↓
-    Update VERSION
-    ↓
-    Update CHANGELOG.md
-    ↓
-    Update DEVELOPMENT_LOG.md
-    ↓
-    Final validation
+- identity verification
+- runner onboarding
+- vehicle
+- order
+- job
+- matching
+- dispatch
+- delivery workflow
+- personal shopper workflow
+- vendor
+- fare
+- payment
+- wallet
+- business workflow
 
-Jangan membina authentication service penuh sebelum migration foundation disahkan.
+Jangan bina table untuk perkara tersebut dalam migration v0.5.0.
 
 ---
 
-# 31. Testing Requirement
+## 33. Definition of Done
 
-Migration implementation mesti mempunyai test yang mengesahkan sekurang-kurangnya:
+Migration Foundation v0.5.0 hanya dianggap selesai apabila:
 
-1. semua 11 table boleh dibuat
-2. semua table boleh dirollback
-3. migration boleh dijalankan semula
-4. semua foreign key berfungsi
-5. UUID column menggunakan `CHAR(36)`
-6. Account ID bukan auto increment
-7. active phone uniqueness berfungsi
-8. active email uniqueness berfungsi
-9. satu ACTIVE PHONE sahaja bagi setiap Account
-10. satu ACTIVE EMAIL sahaja bagi setiap Account
-11. session structure betul
-12. maksimum satu ACTIVE session per Account + App
-13. User dan Runner boleh mempunyai ACTIVE session serentak
-14. account security structure betul
-15. OTP structure betul
-16. OTP resend structure betul
-17. recovery request structure betul
-18. recovery token table wujud
-19. satu Recovery Request hanya mempunyai satu Recovery Token
-20. Recovery Token berkaitan Account
-21. Recovery Token berkaitan Recovery Request
-22. Recovery Token disimpan sebagai hash
-23. tiada plaintext password disimpan
-24. tiada plaintext OTP disimpan
-25. tiada plaintext Recovery Token disimpan
-26. tiada business table di luar scope
-27. test lulus
+1. Migration Plan telah diluluskan dan status ditukar kepada `LOCKED`.
+2. Semua 11 migration dilaksanakan.
+3. Fresh migration berjaya.
+4. Rollback berjaya.
+5. Migration semula berjaya.
+6. Semua foreign key diuji.
+7. Active contact uniqueness diuji.
+8. Active session uniqueness diuji.
+9. Recovery Token integrity diuji.
+10. Security schema diuji.
+11. Tiada regression terhadap existing repository.
+12. Test suite berkaitan foundation lulus.
+13. `VERSION` dikemas kini.
+14. `CHANGELOG.md` dikemas kini.
+15. `DEVELOPMENT_LOG.md` dikemas kini.
 
 ---
 
-# 32. Version Control
-
-Migration Plan ini adalah sebahagian daripada Account Foundation v0.5.0.
-
-Selepas LOCKED, sebarang perubahan kepada perkara berikut mesti direkodkan sebagai perubahan rasmi:
-
-- table
-- column
-- datatype
-- primary key
-- foreign key
-- index
-- unique constraint
-- default
-- nullable state
-- migration order
-- session schema
-- OTP schema
-- recovery request schema
-- Recovery Token schema
-- Recovery Token storage
-
-Jangan edit Migration Plan secara senyap selepas ia LOCKED.
-
----
-
-# 33. Definition of Done
-
-Migration Account Foundation v0.5.0 dianggap selesai hanya apabila:
-
-- [ ] Migration Plan LOCKED
-- [ ] semua migration dibuat mengikut plan
-- [ ] migration berjaya pada database kosong
-- [ ] rollback berjaya
-- [ ] migration boleh dijalankan semula
-- [ ] semua 11 table wujud
-- [ ] semua primary key betul
-- [ ] semua foreign key betul
-- [ ] semua index betul
-- [ ] active phone uniqueness diuji
-- [ ] active email uniqueness diuji
-- [ ] satu active phone per Account diuji
-- [ ] satu active email per Account diuji
-- [ ] session constraint diuji
-- [ ] UUID representation diuji
-- [ ] security schema diuji
-- [ ] OTP schema diuji
-- [ ] recovery request schema diuji
-- [ ] Recovery Token schema diuji
-- [ ] Recovery Token uniqueness diuji
-- [ ] tiada plaintext security data disimpan
-- [ ] tiada business table di luar scope
-- [ ] test lulus
-- [ ] VERSION dikemas kini
-- [ ] CHANGELOG.md dikemas kini
-- [ ] DEVELOPMENT_LOG.md dikemas kini
-- [ ] validation akhir selesai
-
----
-
-# 34. Status Dokumen
+## 34. Status Dokumen
 
 Status semasa:
 
 **DRAFT**
 
-Dokumen ini menjadi rujukan implementation selepas Kapten meluluskan dan menetapkannya sebagai:
+Dokumen ini belum menjadi LOCKED implementation authority sehingga Kapten memberikan kelulusan.
 
-**LOCKED**
+Sebarang konflik antara dokumen ini dengan dokumen LOCKED mesti dihentikan dan diselesaikan sebelum implementation.
 
-Selepas diluluskan:
-
-    DRAFT
-    ↓
-    REVIEW
-    ↓
-    LOCKED
-    ↓
-    IMPLEMENTATION
+Dokumen LOCKED mempunyai priority berbanding Migration Plan selagi Migration Plan masih `DRAFT`.
 
 ---
 
-# Final Principle
+## 35. Authority Order
 
-    Blueprint
-    ↓
-    Database Specification
-    ↓
-    Migration Plan
-    ↓
-    Migration
-    ↓
-    Implementation
-    ↓
-    Test
-    ↓
-    Validation
+Untuk implementation v0.5.0, rujukan hendaklah dibaca dalam urutan:
 
-**Jangan melangkau urutan ini.**
+1. `docs/DEVELOPMENT_RULES.md`
+2. `docs/architecture/account-foundation.md`
+3. `docs/architecture/database-specification-v0.5.0.md`
+4. `docs/decisions/authentication-foundation.md`
+5. `docs/architecture/migration-plan-v0.5.0.md`
+
+Migration Plan mesti mematuhi dokumen LOCKED di atas.
+
+Migration Plan tidak boleh mengatasi keputusan yang telah LOCKED.
+
+---
+
+## 36. Implementation Gate
+
+Sebelum migration coding bermula:
+
+- Migration Plan mesti diaudit.
+- Semua conflict mesti diselesaikan.
+- Kapten mesti meluluskan plan.
+- Status plan mesti ditukar daripada `DRAFT` kepada `LOCKED`.
+
+Selepas gate ini diluluskan barulah implementation migration boleh dimulakan.
+
+---
+
+**END — ODP Migration Plan v0.5.0**
+**Status: DRAFT**
