@@ -20,11 +20,18 @@ return new class extends Migration
             $table->dateTime('created_at');
             $table->dateTime('updated_at');
 
+            // ACTIVE contact mesti unik secara global.
             $table->string('active_unique_key', 300)
                 ->nullable()
                 ->storedAs("CASE WHEN status = 'ACTIVE' THEN CONCAT(type, ':', value) ELSE NULL END");
 
+            // Satu Account hanya boleh mempunyai satu ACTIVE contact bagi setiap type.
+            $table->string('active_account_type_key', 60)
+                ->nullable()
+                ->storedAs("CASE WHEN status = 'ACTIVE' THEN CONCAT(account_id, ':', type) ELSE NULL END");
+
             $table->unique('active_unique_key');
+            $table->unique('active_account_type_key');
 
             $table->foreign('account_id')
                 ->references('id')
