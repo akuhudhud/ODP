@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Account\ProfileController;
+use App\Http\Controllers\Api\V1\Account\ProfileUpdateController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -16,6 +17,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/account', AccountController::class);
 
         Route::get('/account/profile', ProfileController::class);
+
+        Route::put('/account/profile', ProfileUpdateController::class);
 
         Route::post('/auth/logout', LogoutController::class);
     });
