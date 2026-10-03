@@ -68,7 +68,8 @@ class LogoutTest extends TestCase
             ->assertUnauthorized()
             ->assertJson([
                 'status' => 'error',
-                'message' => 'Token akses diperlukan.',
+                'message' => 'Sesi tidak sah.',
+                'data' => null,
             ]);
     }
 
