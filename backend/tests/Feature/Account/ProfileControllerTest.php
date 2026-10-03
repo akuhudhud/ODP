@@ -124,7 +124,6 @@ class ProfileControllerTest extends TestCase
             'expires_at' => $now->copy()->addDays(30),
             'revoked_at' => null,
             'created_at' => $now,
-            'updated_at' => $now,
         ]);
 
         return [$accountId, $token];
