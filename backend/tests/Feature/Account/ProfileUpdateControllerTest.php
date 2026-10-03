@@ -141,7 +141,7 @@ class ProfileUpdateControllerTest extends TestCase
             'display_name' => 'Nama Lama',
             'display_name_changed_at' => $changedAt,
             'profile_photo' => 'profiles/lama.jpg',
-            'created_at' => now(),
+            'created_at' => now()->subDays(10),
             'updated_at' => $changedAt,
         ]);
 
@@ -225,7 +225,6 @@ class ProfileUpdateControllerTest extends TestCase
             'expires_at' => $now->copy()->addDays(30),
             'revoked_at' => null,
             'created_at' => $now,
-            'updated_at' => $now,
         ]);
 
         return [$accountId, $token];
