@@ -36,4 +36,9 @@ class Account extends Model
     {
         return (string) Str::uuid7();
     }
+
+    public function accountProfile()
+    {
+        return $this->hasOne(AccountProfile::class, 'account_id', 'id');
+    }
 }
