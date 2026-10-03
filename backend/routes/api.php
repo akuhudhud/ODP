@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Account\AccountController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -11,6 +12,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', LoginController::class);
 
     Route::middleware('api.session')->group(function () {
+        Route::get('/account', AccountController::class);
+
         Route::post('/auth/logout', LogoutController::class);
     });
 });
