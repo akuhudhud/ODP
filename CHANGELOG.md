@@ -1,84 +1,142 @@
-# Changelog
+# Log Perubahan
 
-All notable changes to this project are documented here.
+Semua perubahan penting dalam projek ini direkodkan di sini.
+
+## [0.5.0] - 2026-10-03
+
+### Ditambah
+
+- Asas Account & Authentication ODP.
+- Struktur Account sebagai identity utama ODP.
+- Account ID menggunakan UUID v7 dengan representasi `CHAR(36)`.
+- Struktur `account_contacts` untuk phone dan email.
+- Struktur `account_profiles`.
+- Struktur `account_passwords` dan `account_password_history`.
+- Struktur `account_devices` dan `app_sessions`.
+- Struktur `account_security` untuk kawalan cubaan login gagal dan security level.
+- Struktur `otp_challenges` untuk OTP phone dan email.
+- Struktur `account_recovery_requests` dan `account_recovery_tokens`.
+- Asas account lifecycle: ACTIVE, SUSPENDED, DEACTIVATED dan DELETED.
+- Asas login security dan pengasingan session mengikut app.
+- Peraturan keselamatan OTP termasuk resend lock dan Admin override.
+- Asas Account Recovery dengan Recovery Mode.
+- 11 migration foundation untuk Account & Authentication.
+
+### Diubah
+
+- Menggunakan struktur Account ODP menggantikan auth foundation Laravel yang tidak diperlukan.
+- Menghapuskan migration Laravel auth default:
+  - `users`
+  - `password_reset_tokens`
+  - `personal_access_tokens`
+- Mengekalkan `failed_jobs` sebagai migration Laravel yang masih diperlukan.
+- Menetapkan Security Activity dan Audit Log sebagai struktur JSONL berasingan.
+
+### Pengesahan
+
+- MySQL 8.0 fresh migration: LULUS.
+- Migration rollback: LULUS.
+- Re-migration: LULUS.
+- Generated-column unique constraints: LULUS.
+- Foreign key constraints: LULUS.
+- Laravel test suite: 3 tests passed, 4 assertions.
+- Working tree selepas validation: BERSIH.
+
+### Skop
+
+- v0.5.0 meliputi foundation Account & Authentication sahaja.
+- Business logic belum dilaksanakan.
+- Runner, Vendor, Order, Delivery, Personal Shopper, Payment dan Wallet kekal sebagai FUTURE.
 
 ## [0.4.0] - 2026-10-01
 
-### Added
-- Standard API v1 response structure.
-- Success response format with `status`, `message` and `data`.
-- Error response format with `status`, `message` and `data`.
-- API v1 response documentation under `docs/api/v1.md`.
+### Ditambah
 
-### Changed
-- Updated `HealthController` to use the API v1 response standard.
-- Updated API health feature test to validate the new response structure.
+- Struktur standard response API v1.
+- Format response berjaya dengan `status`, `message` dan `data`.
+- Format response error dengan `status`, `message` dan `data`.
+- Dokumentasi response API v1 di `docs/api/v1.md`.
 
-### Validation
-- Full Laravel test suite: 3 tests passed.
+### Diubah
 
-### Scope
-- API infrastructure only.
-- No business logic implemented.
+- Mengemas kini `HealthController` supaya menggunakan standard response API v1.
+- Mengemas kini feature test API health untuk mengesahkan struktur response baharu.
+
+### Pengesahan
+
+- Keseluruhan Laravel test suite: 3 tests passed.
+
+### Skop
+
+- Infrastruktur API sahaja.
+- Tiada business logic dilaksanakan.
 
 ## [0.3.0] - 2026-10-01
 
-### Added
-- API v1 foundation.
-- API health endpoint at `GET /api/v1/health`.
-- `HealthController` under the API v1 namespace.
-- Automated feature test for the API health endpoint.
+### Ditambah
 
-### Validation
-- API health test passed.
-- Full Laravel test suite: 3 tests passed.
+- Asas API v1.
+- Endpoint kesihatan API di `GET /api/v1/health`.
+- `HealthController` di bawah namespace API v1.
+- Automated feature test untuk endpoint API health.
 
-### Scope
-- API infrastructure only.
-- No business logic implemented.
-- No authentication workflow.
-- No order engine.
-- No fare/price engine.
-- No payment or wallet system.
-- No vendor system.
-- No delivery or personal shopper workflow.
+### Pengesahan
+
+- API health test lulus.
+- Keseluruhan Laravel test suite: 3 tests passed.
+
+### Skop
+
+- Infrastruktur API sahaja.
+- Tiada business logic dilaksanakan.
+- Tiada workflow authentication.
+- Tiada order engine.
+- Tiada fare/price engine.
+- Tiada sistem payment atau wallet.
+- Tiada sistem vendor.
+- Tiada workflow delivery atau personal shopper.
 
 ## [0.2.0] - 2026-09-30
 
-### Added
-- Laravel 10 backend foundation under `backend/`.
-- Laravel application structure.
-- Composer dependency management.
-- Laravel environment configuration.
-- Application key generation.
-- Initial Laravel test suite.
+### Ditambah
 
-### Validation
-- Laravel Framework 10.50.3 verified.
-- PHP 8.4.15 verified.
-- Composer 2.10.3 verified.
+- Asas Laravel 10 backend di bawah `backend/`.
+- Struktur aplikasi Laravel.
+- Pengurusan dependency melalui Composer.
+- Konfigurasi environment Laravel.
+- Penjanaan application key.
+- Laravel test suite awal.
+
+### Pengesahan
+
+- Laravel Framework 10.50.3 disahkan.
+- PHP 8.4.15 disahkan.
+- Composer 2.10.3 disahkan.
 - PHPUnit tests: 2 passed.
 
-### Scope
-- Backend foundation only.
-- No business logic implemented.
-- No order engine.
-- No fare engine.
-- No payment or wallet system.
-- No vendor module.
-- No delivery or personal shopper logic.
+### Skop
+
+- Asas backend sahaja.
+- Tiada business logic dilaksanakan.
+- Tiada order engine.
+- Tiada fare engine.
+- Tiada sistem payment atau wallet.
+- Tiada modul vendor.
+- Tiada logic delivery atau personal shopper.
 
 ## [0.1.0] - 2026-09-30
 
-### Added
-- Initial ODP repository structure.
-- Backend, user app, runner app and admin directories.
-- Database, documentation and tests directories.
+### Ditambah
+
+- Struktur awal repository ODP.
+- Direktori backend, user app, runner app dan admin.
+- Direktori database, dokumentasi dan tests.
 - README.
 - Development log.
-- Versioning system.
+- Sistem versioning.
 - Root `.gitignore`.
 
-### Scope
-- Foundation structure and documentation only.
-- Business logic intentionally excluded.
+### Skop
+
+- Struktur foundation dan dokumentasi sahaja.
+- Business logic sengaja tidak dimasukkan.
