@@ -24,6 +24,10 @@
 - Menambah migration `account_recovery_requests`.
 - Menambah migration `account_recovery_tokens`.
 - Menetapkan account lifecycle: ACTIVE, SUSPENDED, DEACTIVATED dan DELETED.
+- Menetapkan `SUSPENDED` sebagai restricted access dan bukan authentication termination.
+- Menetapkan Account `SUSPENDED` masih boleh login tetapi tidak boleh menggunakan business service.
+- Menetapkan Account `DEACTIVATED` tidak boleh login melalui authentication biasa.
+- Menetapkan Account `DELETED` sebagai terminal Account Status.
 - Menetapkan login security dengan security level 0 hingga 3.
 - Menetapkan session isolation mengikut app.
 - Menetapkan maksimum satu active session bagi setiap Account + App.
@@ -43,6 +47,13 @@
 - Menyediakan migration foundation sebanyak 11 table ODP.
 - Menetapkan Security Activity dan Audit Log sebagai JSONL berasingan.
 - Mengekalkan business tables di luar scope v0.5.0.
+- Mengemas kini `LoginController` untuk membenarkan login bagi Account `ACTIVE` dan `SUSPENDED`.
+- Mengemas kini `LoginController` untuk menolak login bagi Account `DEACTIVATED` dan `DELETED`.
+- Mengemas kini `AuthenticateApiSession` untuk membenarkan authenticated session bagi Account `ACTIVE` dan `SUSPENDED`.
+- Mengemas kini `AuthenticateApiSession` untuk menolak existing session bagi Account `DEACTIVATED` dan `DELETED`.
+- Menambah feature test bagi lifecycle authentication.
+- Menambah feature test bagi lifecycle API session authentication.
+- Menambah feature test untuk logout.
 
 ### Keputusan Architecture
 
@@ -55,6 +66,14 @@ USER ialah capability asas dan tidak memerlukan capability row.
 Runner capability dan Runner eligibility kekal sebagai dua perkara berasingan.
 
 Identity Verification tidak disamakan dengan authentication, capability, authorization atau service access.
+
+Account Status, Authentication, Authorization dan Business Service Access kekal sebagai concern yang berasingan.
+
+`SUSPENDED` ialah restricted access dan bukan authentication termination.
+
+`DEACTIVATED` bukan status terminal dan boleh melalui Reactivation / Account Recovery Flow yang sah.
+
+`DELETED` ialah terminal Account Status.
 
 ### Database Foundation
 
@@ -116,8 +135,15 @@ Migration validation:
 
 Automated test validation:
 
-- Laravel authentication test suite: `13 tests passed`.
-- Assertions: `56`.
+- Authentication lifecycle test suite: `19 tests passed`.
+- Assertions: `78`.
+- Login tests: LULUS.
+- Logout tests: LULUS.
+- API session authentication tests: LULUS.
+- ACTIVE account authentication: LULUS.
+- SUSPENDED account authentication: LULUS.
+- DEACTIVATED account authentication rejection: LULUS.
+- DELETED account authentication rejection: LULUS.
 - Working tree selepas validation: BERSIH.
 
 ### Scope Control
@@ -138,12 +164,15 @@ Perkara berikut belum dilaksanakan:
 - Payment integration
 - Wallet
 - Business-specific workflows
+- Business service authorization untuk lifecycle `SUSPENDED`
 
-Semua perkara tersebut kekal sebagai FUTURE.
+Semua perkara tersebut kekal sebagai FUTURE atau scope implementation seterusnya.
 
 ### Next Stage
 
 Teruskan foundation Account & Authentication kepada implementation layer secara terkawal sebelum memperkenalkan business workflow.
+
+Authorization khusus profile, contact, credential dan business service akan dibina secara berasingan mengikut endpoint dan capability yang ditetapkan.
 
 ---
 
@@ -247,4 +276,42 @@ Laravel akan kekal pada versi 10 sepanjang fasa pembangunan awal. Sebarang upgra
 
 ### Kawalan Skop
 
-Backend ketika ini hanya mengandungi technical
+Backend ketika ini hanya mengandungi technical foundation.
+
+Tiada business logic diperkenalkan pada peringkat ini.
+
+---
+
+## 2026-09-30 — Repository Foundation
+
+### Versi
+
+`0.1.0`
+
+### Selesai
+
+- Menetapkan struktur awal repository ODP.
+- Menetapkan direktori `backend/`.
+- Menetapkan direktori `user-app/`.
+- Menetapkan direktori `runner-app/`.
+- Menetapkan direktori `admin/`.
+- Menetapkan direktori `database/`.
+- Menetapkan direktori `docs/`.
+- Menetapkan direktori `tests/`.
+- Menambah `README.md`.
+- Menambah `DEVELOPMENT_LOG.md`.
+- Menambah sistem versioning melalui `VERSION`.
+- Menambah root `.gitignore`.
+- Menetapkan GitHub sebagai Source of Truth.
+
+### Keputusan Architecture
+
+Repository foundation menjadi asas kepada pembangunan ODP secara berperingkat.
+
+Semua perubahan utama mesti melalui GitHub dan direkodkan mengikut versioning projek.
+
+### Kawalan Skop
+
+Peringkat ini hanya meliputi repository foundation dan dokumentasi.
+
+Business logic belum diperkenalkan.
