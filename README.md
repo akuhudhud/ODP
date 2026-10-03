@@ -1,47 +1,65 @@
 # ODP
 
-ODP is the internal development codename for the project.
+ODP ialah kod nama pembangunan dalaman projek ini.
 
 ## Status
 
-Foundation stage — v0.4.0.
+Peringkat foundation — v0.5.0.
 
-## v0.1.0 Scope
+## Skop v0.5.0
 
-This version establishes the project structure and development documentation only.
+Versi ini menetapkan foundation Account & Authentication.
 
-No business logic is included yet:
+Komponen yang telah disediakan:
 
-- No authentication
-- No order engine
-- No fare/price engine
-- No payment
-- No wallet
-- No vendor system
-- No delivery workflow
-- No personal shopper workflow
+- Account sebagai identity utama ODP.
+- Account ID menggunakan UUID v7.
+- Contact phone dan email.
+- Profile Account.
+- Password dan password history.
+- Device dan app session.
+- Account security.
+- OTP challenge.
+- Account recovery.
+- Account lifecycle.
+- Security Activity.
+- Audit Log.
 
-## Structure
+Business logic masih belum dilaksanakan:
 
-- `backend/` — backend application
-- `user-app/` — user mobile application
-- `runner-app/` — runner mobile application
-- `admin/` — administration system
-- `database/` — database-related assets
-- `docs/` — architecture, API and decisions
-- `tests/` — test assets
+- Tiada Runner eligibility.
+- Tiada vehicle system.
+- Tiada order engine.
+- Tiada fare/price engine.
+- Tiada payment.
+- Tiada wallet.
+- Tiada vendor system.
+- Tiada delivery workflow.
+- Tiada personal shopper workflow.
 
-## Development Principles
+## Struktur
 
-1. Build the foundation first.
-2. Keep modules separated.
-3. Avoid premature business logic.
-4. Use version control from the beginning.
-5. GitHub is the source of truth.
-6. Keep development-facing naming under the ODP codename.
+- `backend/` — aplikasi backend
+- `user-app/` — aplikasi mudah alih pengguna
+- `runner-app/` — aplikasi mudah alih runner
+- `admin/` — sistem pentadbiran
+- `database/` — aset berkaitan database
+- `docs/` — architecture, API dan keputusan projek
+- `tests/` — aset pengujian
+
+## Prinsip Pembangunan
+
+1. Bina foundation terlebih dahulu.
+2. Kekalkan pemisahan antara module.
+3. Elakkan business logic terlalu awal.
+4. Gunakan version control dari awal.
+5. GitHub ialah Source of Truth.
+6. Kekalkan nama pembangunan di bawah kod nama ODP.
 
 ## Versioning
 
-Semantic-versioning style is used.
+Gaya Semantic Versioning digunakan.
 
-Current version: `0.4.0`
+Versi semasa:
+
+`0.5.0`
