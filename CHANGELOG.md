@@ -39,7 +39,7 @@ Semua perubahan penting dalam projek ini direkodkan di sini.
 - Re-migration: LULUS.
 - Generated-column unique constraints: LULUS.
 - Foreign key constraints: LULUS.
-- Laravel test suite: 3 tests passed, 4 assertions.
+- Laravel authentication test suite: 13 tests passed, 56 assertions.
 - Working tree selepas validation: BERSIH.
 
 ### Skop
