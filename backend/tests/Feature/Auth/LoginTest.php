@@ -112,4 +112,53 @@ class LoginTest extends TestCase
             'status' => 'ACTIVE',
         ]);
     }
-}
+
+    public function test_failed_login_reaches_level_one_after_three_attempts(): void
+    {
+        [$accountId, $deviceId] = $this->createLoginAccount();
+
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $response = $this->postJson('/api/v1/auth/login', [
+                'identifier' => 'security@example.com',
+                'password' => 'WrongPassword1',
+                'app' => 'USER',
+                'device_id' => $deviceId,
+            ]);
+
+            $response
+                ->assertStatus(401)
+                ->assertJson([
+                    'status' => 'error',
+                    'message' => 'Maklumat log masuk tidak sah.',
+                ]);
+        }
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'identifier' => 'security@example.com',
+            'password' => 'WrongPassword1',
+            'app' => 'USER',
+            'device_id' => $deviceId,
+        ]);
+
+        $response
+            ->assertStatus(401)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Maklumat log masuk tidak sah.',
+            ]);
+
+        $security = DB::table('account_security')
+            ->where('account_id', $accountId)
+            ->first();
+
+        $this->assertSame(3, $security->failed_attempts);
+        $this->assertSame(1, $security->security_level);
+        $this->assertNotNull($security->locked_until);
+        $this->assertFalse((bool) $security->admin_review_required);
+    }
+
+    public function test_failed_login_reaches_level_two_after_six_attempts(): void
+    {
+        [$accountId, $deviceId] = $this->createLoginAccount();
+
+       
