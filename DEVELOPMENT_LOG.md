@@ -116,8 +116,8 @@ Migration validation:
 
 Automated test validation:
 
-- Laravel test suite: `3 tests passed`.
-- Assertions: `4`.
+- Laravel authentication test suite: `13 tests passed`.
+- Assertions: `56`.
 - Working tree selepas validation: BERSIH.
 
 ### Scope Control
@@ -189,7 +189,7 @@ Terus mengukuhkan backend foundation sebelum melaksanakan workflow khusus busine
 
 - Menetapkan struktur route API v1.
 - Menambah `GET /api/v1/health`.
-- Menambah `HealthController` di bawah `Api\V1`.
+- Menambah `HealthController` di bawah `Api\\V1`.
 - Menambah automated API health feature test.
 - Menyelaraskan Codespace dengan commit GitHub terkini.
 - Keseluruhan Laravel test suite lulus: `3 tests passed`.
@@ -247,21 +247,4 @@ Laravel akan kekal pada versi 10 sepanjang fasa pembangunan awal. Sebarang upgra
 
 ### Kawalan Skop
 
-Backend ketika ini hanya mengandungi technical foundation Laravel.
-
-Perkara berikut sengaja belum dilaksanakan:
-
-- Design authentication
-- Business logic profile
-- Order engine
-- Fare/price engine
-- Payment integration
-- Wallet
-- Runner task logic
-- Vendor system
-- Delivery module
-- Personal Shopper module
-
-### Peringkat Seterusnya
-
-Membina backend API foundation ODP tanpa memperkenalkan logic khusus business.
+Backend ketika ini hanya mengandungi technical
