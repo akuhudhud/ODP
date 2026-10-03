@@ -57,7 +57,10 @@ class LoginController extends Controller
             ->where('id', $contact->account_id)
             ->first();
 
-        if (! $account || $account->status !== 'ACTIVE') {
+        if (
+            ! $account ||
+            ! in_array($account->status, ['ACTIVE', 'SUSPENDED'], true)
+        ) {
             return ApiResponse::error(
                 message: 'Akaun tidak tersedia.',
                 statusCode: 401
