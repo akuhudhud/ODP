@@ -20,6 +20,12 @@ class LoginTest extends TestCase
             ->assertStatus(422)
             ->assertJson([
                 'status' => 'error',
+                'message' => 'Maklumat log masuk tidak lengkap.',
+            ])
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data',
             ]);
     }
 
@@ -84,10 +90,20 @@ class LoginTest extends TestCase
                 'message' => 'Log masuk berjaya.',
                 'data' => [
                     'account_id' => $accountId,
-                    'session_id' => fn ($value) => is_string($value),
-                    'token' => fn ($value) => is_string($value),
+                ],
+            ])
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'account_id',
+                    'session_id',
+                    'token',
                 ],
             ]);
+
+        $this->assertNotEmpty($response->json('data.session_id'));
+        $this->assertNotEmpty($response->json('data.token'));
 
         $this->assertDatabaseHas('app_sessions', [
             'account_id' => $accountId,
