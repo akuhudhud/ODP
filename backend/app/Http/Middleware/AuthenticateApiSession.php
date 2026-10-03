@@ -38,7 +38,7 @@ class AuthenticateApiSession
 
         $account = Account::query()
             ->where('id', $session->account_id)
-            ->whereIn('status', ['ACTIVE', 'SUSPENDED', 'DEACTIVATED'])
+            ->whereIn('status', ['ACTIVE', 'SUSPENDED'])
             ->first();
 
         if (! $account) {
