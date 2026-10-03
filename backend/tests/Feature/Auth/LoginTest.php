@@ -31,53 +31,10 @@ class LoginTest extends TestCase
 
     public function test_login_with_valid_credentials_returns_session_token(): void
     {
-        $accountId = (string) Str::uuid7();
-        $deviceId = (string) Str::uuid7();
-        $contactId = (string) Str::uuid7();
-        $now = now();
-
-        DB::table('accounts')->insert([
-            'id' => $accountId,
-            'status' => 'ACTIVE',
-            'created_at' => $now,
-            'updated_at' => $now,
-            'deactivated_at' => null,
-            'deleted_at' => null,
-        ]);
-
-        DB::table('account_contacts')->insert([
-            'id' => $contactId,
-            'account_id' => $accountId,
-            'type' => 'EMAIL',
-            'value' => 'test@example.com',
-            'status' => 'ACTIVE',
-            'is_verified' => true,
-            'verified_at' => $now,
-            'released_at' => null,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        DB::table('account_passwords')->insert([
-            'account_id' => $accountId,
-            'password_hash' => Hash::make('Password1'),
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        DB::table('account_devices')->insert([
-            'id' => $deviceId,
-            'account_id' => $accountId,
-            'device_identifier' => 'test-device-001',
-            'platform' => 'ANDROID',
-            'device_name' => 'Test Device',
-            'last_seen_at' => null,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        [$accountId, $deviceId] = $this->createLoginAccount();
 
         $response = $this->postJson('/api/v1/auth/login', [
-            'identifier' => 'test@example.com',
+            'identifier' => 'security@example.com',
             'password' => 'Password1',
             'app' => 'USER',
             'device_id' => $deviceId,
@@ -108,6 +65,89 @@ class LoginTest extends TestCase
         $this->assertDatabaseHas('app_sessions', [
             'account_id' => $accountId,
             'device_id' => $deviceId,
+            'app' => 'USER',
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    public function test_suspended_account_can_login(): void
+    {
+        [$accountId, $deviceId] = $this->createLoginAccount('SUSPENDED');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'identifier' => 'security@example.com',
+            'password' => 'Password1',
+            'app' => 'USER',
+            'device_id' => $deviceId,
+        ]);
+
+        $response
+            ->assertStatus(200)
+            ->assertJson([
+                'status' => 'success',
+                'message' => 'Log masuk berjaya.',
+                'data' => [
+                    'account_id' => $accountId,
+                ],
+            ])
+            ->assertJsonStructure([
+                'status',
+                'message',
+                'data' => [
+                    'account_id',
+                    'session_id',
+                    'token',
+                ],
+            ]);
+    }
+
+    public function test_deactivated_account_cannot_login(): void
+    {
+        [$accountId, $deviceId] = $this->createLoginAccount('DEACTIVATED');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'identifier' => 'security@example.com',
+            'password' => 'Password1',
+            'app' => 'USER',
+            'device_id' => $deviceId,
+        ]);
+
+        $response
+            ->assertStatus(401)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Akaun tidak tersedia.',
+                'data' => null,
+            ]);
+
+        $this->assertDatabaseMissing('app_sessions', [
+            'account_id' => $accountId,
+            'app' => 'USER',
+            'status' => 'ACTIVE',
+        ]);
+    }
+
+    public function test_deleted_account_cannot_login(): void
+    {
+        [$accountId, $deviceId] = $this->createLoginAccount('DELETED');
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'identifier' => 'security@example.com',
+            'password' => 'Password1',
+            'app' => 'USER',
+            'device_id' => $deviceId,
+        ]);
+
+        $response
+            ->assertStatus(401)
+            ->assertJson([
+                'status' => 'error',
+                'message' => 'Akaun tidak tersedia.',
+                'data' => null,
+            ]);
+
+        $this->assertDatabaseMissing('app_sessions', [
+            'account_id' => $accountId,
             'app' => 'USER',
             'status' => 'ACTIVE',
         ]);
@@ -291,7 +331,7 @@ class LoginTest extends TestCase
             ]);
     }
 
-    private function createLoginAccount(): array
+    private function createLoginAccount(string $status = 'ACTIVE'): array
     {
         $accountId = (string) Str::uuid7();
         $deviceId = (string) Str::uuid7();
@@ -300,11 +340,11 @@ class LoginTest extends TestCase
 
         DB::table('accounts')->insert([
             'id' => $accountId,
-            'status' => 'ACTIVE',
+            'status' => $status,
             'created_at' => $now,
             'updated_at' => $now,
-            'deactivated_at' => null,
-            'deleted_at' => null,
+            'deactivated_at' => $status === 'DEACTIVATED' ? $now : null,
+            'deleted_at' => $status === 'DELETED' ? $now : null,
         ]);
 
         DB::table('account_contacts')->insert([
