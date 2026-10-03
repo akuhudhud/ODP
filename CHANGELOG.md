@@ -2,7 +2,7 @@
 
 Semua perubahan penting dalam projek ini direkodkan di sini.
 
-## [0.5.0] - 2026-10-03
+## [0.5.0] - 2026-10-04
 
 ### Ditambah
 
@@ -21,6 +21,10 @@ Semua perubahan penting dalam projek ini direkodkan di sini.
 - Peraturan keselamatan OTP termasuk resend lock dan Admin override.
 - Asas Account Recovery dengan Recovery Mode.
 - 11 migration foundation untuk Account & Authentication.
+- Endpoint `GET /api/v1/account`.
+- Endpoint `GET /api/v1/account/profile`.
+- Endpoint `PUT /api/v1/account/profile`.
+- Relationship `Account` → `AccountProfile`.
 
 ### Diubah
 
@@ -31,6 +35,10 @@ Semua perubahan penting dalam projek ini direkodkan di sini.
   - `personal_access_tokens`
 - Mengekalkan `failed_jobs` sebagai migration Laravel yang masih diperlukan.
 - Menetapkan Security Activity dan Audit Log sebagai struktur JSONL berasingan.
+- Menetapkan akses profile mengikut Account Status:
+  - ACTIVE boleh melihat dan mengubah profile.
+  - SUSPENDED boleh melihat profile tetapi tidak boleh mengubah profile.
+  - DEACTIVATED dan DELETED ditolak pada authentication.
 
 ### Pengesahan
 
@@ -41,11 +49,19 @@ Semua perubahan penting dalam projek ini direkodkan di sini.
 - Foreign key constraints: LULUS.
 - Laravel authentication test suite awal: 13 tests passed, 56 assertions.
 - Lifecycle authentication validation: 19 tests passed, 78 assertions.
+- Account/Profile validation: 13 tests passed, 31 assertions.
+- Account model relationship validation: LULUS.
+- Account endpoint validation: LULUS.
+- Profile GET endpoint validation: LULUS.
+- Profile UPDATE endpoint validation: LULUS.
+- SUSPENDED profile update restriction: LULUS.
+- Display name validation dan 30-day change restriction: LULUS.
 - Working tree selepas validation: BERSIH.
 
 ### Skop
 
 - v0.5.0 meliputi foundation Account & Authentication sahaja.
+- Account dan Profile API foundation telah diperkenalkan secara minimum.
 - Business logic belum dilaksanakan.
 - Runner, Vendor, Order, Delivery, Personal Shopper, Payment dan Wallet kekal sebagai FUTURE.
 
