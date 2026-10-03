@@ -41,4 +41,9 @@ class Account extends Model
     {
         return $this->hasOne(AccountProfile::class, 'account_id', 'id');
     }
+
+    public function accountContacts()
+    {
+        return $this->hasMany(AccountContact::class, 'account_id', 'id');
+    }
 }
