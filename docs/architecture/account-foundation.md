@@ -64,25 +64,54 @@ Status Account:
 
 ## ACTIVE
 
-Account boleh digunakan seperti biasa tertakluk kepada authentication dan authorization.
+Account `ACTIVE`:
+
+- boleh login
+- boleh mengurus profile tertakluk kepada policy
+- boleh menggunakan business service tertakluk kepada authorization
 
 ## SUSPENDED
 
-Account disekat sementara mengikut keputusan sistem atau pentadbiran.
+Account `SUSPENDED`:
+
+- masih boleh login
+- boleh melihat status Account dan maklumat yang dibenarkan
+- boleh menggunakan fungsi komunikasi atau rayuan dengan Admin apabila disediakan
+- tidak boleh mengubah profile
+- tidak boleh menukar contact atau credential melalui flow biasa
+- tidak boleh menggunakan business service
+- kekal dalam kawalan pentadbiran sehingga suspension diselesaikan
+
+`SUSPENDED` ialah restricted access, bukan authentication termination.
+
+Status ini boleh digunakan untuk keadaan seperti investigation, audit atau administrative review.
 
 ## DEACTIVATED
 
-Account tidak aktif tetapi masih wujud dalam sistem.
+Account `DEACTIVATED`:
+
+- tidak boleh login melalui authentication biasa
+- existing active session tidak boleh digunakan
+- data Account dikekalkan
+- boleh menjalani Reactivation / Account Recovery Flow yang sah
+- selepas reactivation yang berjaya, status Account boleh kembali kepada `ACTIVE`
+
+`DEACTIVATED` bukan status terminal.
 
 ## DELETED
 
-Status `DELETED` adalah kekal.
+Account `DELETED`:
+
+- tidak boleh login
+- tidak boleh menggunakan existing session
+- tidak boleh menggunakan business service
+- tidak boleh dipulihkan melalui Account Recovery biasa
+
+`DELETED` ialah terminal Account Status.
 
 Data dan rekod Account dikekalkan mengikut keperluan retention.
 
 Account ID tidak boleh digunakan semula.
-
-Account yang telah `DELETED` tidak boleh dipulihkan melalui Account Recovery.
 
 Account deletion tidak bermaksud rekod Account dibuang secara fizikal daripada database.
 
@@ -641,6 +670,65 @@ Authentication menentukan identiti Account.
 Authorization menentukan apa yang Account tersebut dibenarkan lakukan.
 
 Kedua-dua concern mesti kekal berasingan.
+
+## Account Status Access Rules
+
+Account Status dan authentication tidak boleh dianggap sebagai satu concern yang sama.
+
+Account Status menentukan keadaan lifecycle Account.
+
+Authentication menentukan sama ada Account boleh mendapatkan authenticated session.
+
+Authorization menentukan fungsi yang boleh digunakan selepas authentication.
+
+Business service access tidak boleh ditentukan semata-mata berdasarkan kewujudan authenticated session.
+
+### ACTIVE
+
+Account `ACTIVE`:
+
+- boleh login
+- boleh mengurus profile tertakluk kepada policy
+- boleh menggunakan business service tertakluk kepada authorization
+
+### SUSPENDED
+
+Account `SUSPENDED`:
+
+- masih boleh login
+- boleh melihat status Account dan maklumat yang dibenarkan
+- boleh menggunakan fungsi komunikasi atau rayuan dengan Admin apabila disediakan
+- tidak boleh mengubah profile
+- tidak boleh menukar contact atau credential melalui flow biasa
+- tidak boleh menggunakan business service
+- kekal dalam kawalan pentadbiran sehingga suspension diselesaikan
+
+`SUSPENDED` ialah restricted access, bukan authentication termination.
+
+Status ini boleh digunakan untuk keadaan seperti investigation, audit atau administrative review.
+
+### DEACTIVATED
+
+Account `DEACTIVATED`:
+
+- tidak boleh login melalui authentication biasa
+- existing active session tidak boleh digunakan
+- data Account dikekalkan
+- boleh menjalani Reactivation / Account Recovery Flow yang sah
+- selepas reactivation yang berjaya, status Account boleh kembali kepada `ACTIVE`
+
+`DEACTIVATED` bukan status terminal.
+
+### DELETED
+
+Account `DELETED`:
+
+- tidak boleh login
+- tidak boleh menggunakan existing session
+- tidak boleh menggunakan business service
+- tidak boleh dipulihkan melalui Account Recovery biasa
+
+`DELETED` ialah terminal Account Status.
 
 Account yang sama boleh mempunyai akses kepada aplikasi yang berbeza.
 
