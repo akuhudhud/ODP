@@ -1,159 +1,379 @@
-# Log Perubahan
+# Log Pembangunan
 
-Semua perubahan penting dalam projek ini direkodkan di sini.
+## 2026-10-04 — Account & Profile API Foundation
 
-## [0.5.0] - 2026-10-04
+### Versi
 
-### Ditambah
+`0.5.0`
 
-- Asas Account & Authentication ODP.
-- Struktur Account sebagai identity utama ODP.
-- Account ID menggunakan UUID v7 dengan representasi `CHAR(36)`.
-- Struktur `account_contacts` untuk phone dan email.
-- Struktur `account_profiles`.
-- Struktur `account_passwords` dan `account_password_history`.
-- Struktur `account_devices` dan `app_sessions`.
-- Struktur `account_security` untuk kawalan cubaan login gagal dan security level.
-- Struktur `otp_challenges` untuk OTP phone dan email.
-- Struktur `account_recovery_requests` dan `account_recovery_tokens`.
-- Asas account lifecycle: ACTIVE, SUSPENDED, DEACTIVATED dan DELETED.
-- Asas login security dan pengasingan session mengikut app.
-- Peraturan keselamatan OTP termasuk resend lock dan Admin override.
-- Asas Account Recovery dengan Recovery Mode.
-- 11 migration foundation untuk Account & Authentication.
-- Endpoint `GET /api/v1/account`.
-- Endpoint `GET /api/v1/account/profile`.
-- Endpoint `PUT /api/v1/account/profile`.
-- Relationship `Account` → `AccountProfile`.
+### Selesai
 
-### Diubah
+- Menambah `AccountController`.
+- Menambah `ProfileController`.
+- Menambah `ProfileUpdateController`.
+- Menambah relationship `Account` → `AccountProfile`.
+- Menambah route `GET /api/v1/account`.
+- Menambah route `GET /api/v1/account/profile`.
+- Menambah route `PUT /api/v1/account/profile`.
+- Menetapkan Account endpoint hanya boleh dicapai melalui authenticated API session.
+- Menetapkan Profile GET boleh digunakan oleh Account `ACTIVE` dan `SUSPENDED`.
+- Menetapkan Profile UPDATE hanya boleh digunakan oleh Account `ACTIVE`.
+- Menetapkan Profile UPDATE ditolak dengan HTTP `403` bagi Account `SUSPENDED`.
+- Menetapkan display name hanya menerima huruf Unicode dan ruang.
+- Menetapkan display name hanya boleh ditukar sekali setiap 30 hari.
+- Menambah automated feature test untuk Account endpoint.
+- Menambah automated feature test untuk Profile GET endpoint.
+- Menambah automated feature test untuk Profile UPDATE endpoint.
+- Menambah unit test untuk relationship `Account` → `AccountProfile`.
 
-- Menggunakan struktur Account ODP menggantikan auth foundation Laravel yang tidak diperlukan.
-- Menghapuskan migration Laravel auth default:
+### Validation
+
+- Account/Profile test suite: `13 tests passed`.
+- Assertions: `31`.
+- Account GET endpoint: LULUS.
+- Profile GET endpoint: LULUS.
+- Profile UPDATE endpoint: LULUS.
+- SUSPENDED profile update restriction: LULUS.
+- Display name validation: LULUS.
+- Display name 30-day change restriction: LULUS.
+- Account model relationship: LULUS.
+- Validation dijalankan menggunakan PHP 8.4 Docker environment dengan `pdo_mysql`.
+
+### Keputusan Architecture
+
+Account API dan Profile API kekal sebagai foundation layer.
+
+Account Status, Authentication, Authorization dan Business Service Access kekal sebagai concern yang berasingan.
+
+`SUSPENDED` masih boleh authenticated bagi tujuan restricted access dan komunikasi dengan sistem/Admin, tetapi tidak dibenarkan mengubah profile.
+
+### Kawalan Skop
+
+Peringkat ini hanya memperkenalkan Account/Profile API minimum.
+
+Belum diperkenalkan:
+
+- Contact management.
+- Password management.
+- OTP workflow.
+- Account Recovery workflow.
+- Identity Verification.
+- Business service authorization.
+- Runner workflow.
+- Vendor workflow.
+- Order workflow.
+- Payment atau Wallet.
+
+### Peringkat Seterusnya
+
+Audit keseluruhan Account & Authentication Foundation v0.5.0 sebelum menentukan implementation layer seterusnya.
+
+---
+
+## 2026-10-03 — Asas Account & Authentication
+
+### Versi
+
+`0.5.0`
+
+### Selesai
+
+- Menetapkan Account sebagai identity utama ODP.
+- Menetapkan Account ID menggunakan UUID v7 dengan representasi `CHAR(36)`.
+- Menetapkan satu Account sebagai satu identity dalam ODP.
+- Menetapkan phone dan email sebagai contact/credential Account.
+- Menambah migration `accounts`.
+- Menambah migration `account_contacts`.
+- Menambah migration `account_profiles`.
+- Menambah migration `account_passwords`.
+- Menambah migration `account_password_history`.
+- Menambah migration `account_devices`.
+- Menambah migration `account_security`.
+- Menambah migration `app_sessions`.
+- Menambah migration `otp_challenges`.
+- Menambah migration `account_recovery_requests`.
+- Menambah migration `account_recovery_tokens`.
+- Menetapkan account lifecycle: ACTIVE, SUSPENDED, DEACTIVATED dan DELETED.
+- Menetapkan `SUSPENDED` sebagai restricted access dan bukan authentication termination.
+- Menetapkan Account `SUSPENDED` masih boleh login tetapi tidak boleh menggunakan business service.
+- Menetapkan Account `DEACTIVATED` tidak boleh login melalui authentication biasa.
+- Menetapkan Account `DELETED` sebagai terminal Account Status.
+- Menetapkan login security dengan security level 0 hingga 3.
+- Menetapkan session isolation mengikut app.
+- Menetapkan maksimum satu active session bagi setiap Account + App.
+- Menetapkan OTP menggunakan phone melalui WhatsApp dan email melalui Email.
+- Menetapkan OTP 6 digit dengan tempoh sah 5 minit.
+- Menetapkan had percubaan OTP, resend cooldown dan resend lock.
+- Menetapkan Admin boleh melakukan `RESET_OTP_RESEND_LOCK`.
+- Menetapkan Admin boleh melakukan `BYPASS_OTP_VERIFICATION`.
+- Menetapkan kedua-dua Admin override OTP sebagai tindakan berisiko tinggi yang wajib direkodkan dalam Audit Log bersama reason.
+- Menetapkan Account Recovery dengan Recovery Mode.
+- Menetapkan recovery token unik bagi setiap recovery request.
+- Menghapuskan migration Laravel auth default yang tidak digunakan:
   - `users`
   - `password_reset_tokens`
   - `personal_access_tokens`
-- Mengekalkan `failed_jobs` sebagai migration Laravel yang masih diperlukan.
-- Menetapkan Security Activity dan Audit Log sebagai struktur JSONL berasingan.
-- Menetapkan akses profile mengikut Account Status:
-  - ACTIVE boleh melihat dan mengubah profile.
-  - SUSPENDED boleh melihat profile tetapi tidak boleh mengubah profile.
-  - DEACTIVATED dan DELETED ditolak pada authentication.
+- Mengekalkan `failed_jobs`.
+- Menyediakan migration foundation sebanyak 11 table ODP.
+- Menetapkan Security Activity dan Audit Log sebagai JSONL berasingan.
+- Mengekalkan business tables di luar scope v0.5.0.
+- Mengemas kini `LoginController` untuk membenarkan login bagi Account `ACTIVE` dan `SUSPENDED`.
+- Mengemas kini `LoginController` untuk menolak login bagi Account `DEACTIVATED` dan `DELETED`.
+- Mengemas kini `AuthenticateApiSession` untuk membenarkan authenticated session bagi Account `ACTIVE` dan `SUSPENDED`.
+- Mengemas kini `AuthenticateApiSession` untuk menolak existing session bagi Account `DEACTIVATED` dan `DELETED`.
+- Menambah feature test bagi lifecycle authentication.
+- Menambah feature test bagi lifecycle API session authentication.
+- Menambah feature test untuk logout.
 
-### Pengesahan
+### Keputusan Architecture
 
-- MySQL 8.0 fresh migration: LULUS.
+Account menjadi identity utama ODP.
+
+USER, Runner dan Admin bukan identity berasingan. Ia merupakan capability/authorization yang akan digunakan mengikut keperluan sistem.
+
+USER ialah capability asas dan tidak memerlukan capability row.
+
+Runner capability dan Runner eligibility kekal sebagai dua perkara berasingan.
+
+Identity Verification tidak disamakan dengan authentication, capability, authorization atau service access.
+
+Account Status, Authentication, Authorization dan Business Service Access kekal sebagai concern yang berasingan.
+
+`SUSPENDED` ialah restricted access dan bukan authentication termination.
+
+`DEACTIVATED` bukan status terminal dan boleh melalui Reactivation / Account Recovery Flow yang sah.
+
+`DELETED` ialah terminal Account Status.
+
+### Database Foundation
+
+Migration disusun mengikut dependency:
+
+1. `accounts`
+2. `account_contacts`
+3. `account_profiles`
+4. `account_passwords`
+5. `account_password_history`
+6. `account_devices`
+7. `account_security`
+8. `app_sessions`
+9. `otp_challenges`
+10. `account_recovery_requests`
+11. `account_recovery_tokens`
+
+Database menggunakan MySQL 8.0+.
+
+UUID v7 digunakan untuk identifier yang berkaitan dan direpresentasikan sebagai `CHAR(36)`.
+
+Active contact uniqueness menggunakan generated column dan unique constraint.
+
+Active session uniqueness menggunakan generated column dan unique constraint.
+
+Tiada cascade delete digunakan.
+
+### Security Foundation
+
+Password hanya disimpan dalam bentuk hash.
+
+OTP hanya disimpan dalam bentuk hash.
+
+Security Activity adalah owner-facing sahaja.
+
+Audit Log adalah rekod dalaman untuk Root Admin/Kapten.
+
+Audit Log menggunakan JSONL append-only dengan hash chain dan fingerprint bulanan selepas bulan ditutup.
+
+Password, OTP, token dan data sensitif tidak direkodkan dalam Audit Log.
+
+### Validation
+
+Environment validation:
+
+- PHP `8.4.15`
+- MySQL `8.0`
+- `pdo_mysql` aktif dalam PHP 8.4 Docker environment.
+
+Migration validation:
+
+- Fresh migration: LULUS.
+- Semua 11 migration ODP: LULUS.
+- `failed_jobs`: LULUS.
+- Foreign key constraints: LULUS.
+- Generated-column unique constraints: LULUS.
 - Migration rollback: LULUS.
 - Re-migration: LULUS.
-- Generated-column unique constraints: LULUS.
-- Foreign key constraints: LULUS.
-- Laravel authentication test suite awal: 13 tests passed, 56 assertions.
-- Lifecycle authentication validation: 19 tests passed, 78 assertions.
-- Account/Profile validation: 13 tests passed, 31 assertions.
-- Account model relationship validation: LULUS.
-- Account endpoint validation: LULUS.
-- Profile GET endpoint validation: LULUS.
-- Profile UPDATE endpoint validation: LULUS.
-- SUSPENDED profile update restriction: LULUS.
-- Display name validation dan 30-day change restriction: LULUS.
+
+Automated test validation:
+
+- Authentication lifecycle test suite: `19 tests passed`.
+- Assertions: `78`.
+- Login tests: LULUS.
+- Logout tests: LULUS.
+- API session authentication tests: LULUS.
+- ACTIVE account authentication: LULUS.
+- SUSPENDED account authentication: LULUS.
+- DEACTIVATED account authentication rejection: LULUS.
+- DELETED account authentication rejection: LULUS.
 - Working tree selepas validation: BERSIH.
 
-### Skop
+### Scope Control
 
-- v0.5.0 meliputi foundation Account & Authentication sahaja.
-- Account dan Profile API foundation telah diperkenalkan secara minimum.
-- Business logic belum dilaksanakan.
-- Runner, Vendor, Order, Delivery, Personal Shopper, Payment dan Wallet kekal sebagai FUTURE.
+v0.5.0 hanya meliputi foundation Account & Authentication.
 
-## [0.4.0] - 2026-10-01
+Perkara berikut belum dilaksanakan:
 
-### Ditambah
+- Identity Verification
+- Runner eligibility
+- Vehicle system
+- Runner documents
+- Operation rules
+- Order engine
+- Delivery workflow
+- Personal Shopper workflow
+- Vendor system
+- Payment integration
+- Wallet
+- Business-specific workflows
+- Business service authorization untuk lifecycle `SUSPENDED`
 
-- Struktur standard response API v1.
-- Format response berjaya dengan `status`, `message` dan `data`.
-- Format response error dengan `status`, `message` dan `data`.
-- Dokumentasi response API v1 di `docs/api/v1.md`.
+Semua perkara tersebut kekal sebagai FUTURE atau scope implementation seterusnya.
 
-### Diubah
+### Next Stage
 
-- Mengemas kini `HealthController` supaya menggunakan standard response API v1.
-- Mengemas kini feature test API health untuk mengesahkan struktur response baharu.
+Teruskan foundation Account & Authentication kepada implementation layer secara terkawal sebelum memperkenalkan business workflow.
 
-### Pengesahan
+Authorization khusus profile, contact, credential dan business service akan dibina secara berasingan mengikut endpoint dan capability yang ditetapkan.
 
-- Keseluruhan Laravel test suite: 3 tests passed.
+---
 
-### Skop
+## 2026-10-01 — Standard Response API v1
 
-- Infrastruktur API sahaja.
-- Tiada business logic dilaksanakan.
+### Versi
 
-## [0.3.0] - 2026-10-01
+`0.4.0`
 
-### Ditambah
+### Selesai
 
-- Asas API v1.
-- Endpoint kesihatan API di `GET /api/v1/health`.
-- `HealthController` di bawah namespace API v1.
-- Automated feature test untuk endpoint API health.
+- Menetapkan struktur standard response API v1.
+- Menyeragamkan success response menggunakan `status`, `message` dan `data`.
+- Menyeragamkan error response menggunakan `status`, `message` dan `data`.
+- Mengemas kini `HealthController` supaya menggunakan struktur response standard.
+- Mengemas kini `ApiHealthTest` untuk mengesahkan response standard.
+- Menambah dokumentasi response API v1 di `docs/api/v1.md`.
+- Keseluruhan Laravel test suite lulus: `3 tests passed`.
 
-### Pengesahan
+### Keputusan Architecture
 
-- API health test lulus.
-- Keseluruhan Laravel test suite: 3 tests passed.
+API ODP akan menggunakan struktur response yang konsisten bagi endpoint API v1.
 
-### Skop
+### Kawalan Skop
 
-- Infrastruktur API sahaja.
-- Tiada business logic dilaksanakan.
-- Tiada workflow authentication.
-- Tiada order engine.
-- Tiada fare/price engine.
-- Tiada sistem payment atau wallet.
-- Tiada sistem vendor.
-- Tiada workflow delivery atau personal shopper.
+Peringkat ini kekal sebagai infrastructure sahaja.
 
-## [0.2.0] - 2026-09-30
+Tiada business workflow diperkenalkan.
 
-### Ditambah
+### Peringkat Seterusnya
 
-- Asas Laravel 10 backend di bawah `backend/`.
-- Struktur aplikasi Laravel.
-- Pengurusan dependency melalui Composer.
-- Konfigurasi environment Laravel.
-- Penjanaan application key.
-- Laravel test suite awal.
+Terus mengukuhkan backend foundation sebelum melaksanakan workflow khusus business.
 
-### Pengesahan
+---
 
-- Laravel Framework 10.50.3 disahkan.
-- PHP 8.4.15 disahkan.
-- Composer 2.10.3 disahkan.
-- PHPUnit tests: 2 passed.
+## 2026-10-01 — Asas API v1
 
-### Skop
+### Versi
 
-- Asas backend sahaja.
-- Tiada business logic dilaksanakan.
-- Tiada order engine.
-- Tiada fare engine.
-- Tiada sistem payment atau wallet.
-- Tiada modul vendor.
-- Tiada logic delivery atau personal shopper.
+`0.3.0`
 
-## [0.1.0] - 2026-09-30
+### Selesai
 
-### Ditambah
+- Menetapkan struktur route API v1.
+- Menambah `GET /api/v1/health`.
+- Menambah `HealthController` di bawah `Api\\V1`.
+- Menambah automated API health feature test.
+- Menyelaraskan Codespace dengan commit GitHub terkini.
+- Keseluruhan Laravel test suite lulus: `3 tests passed`.
 
-- Struktur awal repository ODP.
-- Direktori backend, user app, runner app dan admin.
-- Direktori database, dokumentasi dan tests.
-- README.
-- Development log.
-- Sistem versioning.
-- Root `.gitignore`.
+### Keputusan Architecture
 
-### Skop
+Versioning API bermula pada `/api/v1`.
 
-- Struktur foundation dan dokumentasi sahaja.
-- Business logic sengaja tidak dimasukkan.
+API foundation diasingkan daripada workflow khusus business.
+
+### Kawalan Skop
+
+Perkara berikut sengaja tidak dimasukkan:
+
+- Workflow authentication
+- Business logic profile
+- Order engine
+- Fare/price engine
+- Payment integration
+- Wallet
+- Runner task logic
+- Vendor system
+- Delivery workflow
+- Personal Shopper workflow
+
+### Peringkat Seterusnya
+
+Teruskan backend foundation tanpa memperkenalkan business logic terlalu awal.
+
+---
+
+## 2026-09-30 — Asas Backend Laravel 10
+
+### Versi
+
+`0.2.0`
+
+### Selesai
+
+- Menetapkan backend Laravel 10 di bawah `backend/`.
+- Laravel Framework `10.50.3` disahkan.
+- PHP `8.4.15` disahkan.
+- Composer `2.10.3` disahkan.
+- Environment aplikasi disediakan.
+- Application key berjaya dijana.
+- Laravel test suite awal berjaya dijalankan.
+- Keputusan PHPUnit: `2 passed`.
+- Backend di-commit dan dihantar ke GitHub.
+
+### Keputusan Architecture
+
+Projek menggunakan Laravel 10 pada peringkat awal bagi keserasian dengan persekitaran shared hosting yang dirancang.
+
+Laravel akan kekal pada versi 10 sepanjang fasa pembangunan awal. Sebarang upgrade Laravel pada masa hadapan akan dianggap sebagai migration terkawal selepas keperluan deployment dan keserasian hosting disahkan.
+
+### Kawalan Skop
+
+Backend ketika ini hanya mengandungi technical foundation.
+
+Tiada business logic diperkenalkan pada peringkat ini.
+
+---
+
+## 2026-09-30 — Repository Foundation
+
+### Versi
+
+`0.1.0`
+
+### Selesai
+
+- Menetapkan struktur awal repository ODP.
+- Menetapkan direktori `backend/`.
+- Menetapkan direktori `user-app/`.
+- Menetapkan direktori `runner-app/`.
+- Menetapkan direktori `admin/`.
+- Menetapkan direktori `database/`.
+- Menetapkan direktori `docs/`.
+- Menetapkan direktori `tests/`.
+- Menambah `README.md`.
+- Menambah `DEVELOPMENT_LOG.md`.
+- Menambah sistem versioning melalui `VERSION`.
+- Menambah root `.gitignore`.
+- Menetapkan GitHub sebagai Source of Truth.
+
+### Keputusan Architecture
+
+Repository foundation menjadi
