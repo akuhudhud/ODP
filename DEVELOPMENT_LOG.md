@@ -1,5 +1,47 @@
 # Log Pembangunan
 
+## 2026-10-04 — OTP Contact Pending & Policy Foundation
+
+### Versi
+
+`0.5.0`
+
+### Selesai
+
+- Menambah status contact `PENDING` untuk proses verification sebelum contact menjadi `ACTIVE`.
+- Menetapkan contact `PENDING` bukan active identity contact.
+- Menetapkan satu contact `PENDING` bagi setiap Account + type.
+- Menetapkan nilai contact `PENDING` kekal unik secara global sepanjang proses verification.
+- Menetapkan contact baharu menjadi `ACTIVE` hanya selepas OTP verification berjaya.
+- Menetapkan contact lama bagi type yang sama menjadi `RELEASED` secara atomik selepas verification berjaya.
+- Menambah `OtpChallengePolicy` untuk memisahkan authorization context daripada OTP challenge service.
+- Menambah unit test untuk OTP policy.
+- Validation: `18 tests passed`, `18 assertions`.
+
+### Keputusan Architecture
+
+Lifecycle contact kini menggunakan `ACTIVE`, `PENDING` dan `RELEASED`.
+
+`PENDING` digunakan untuk contact baharu yang sedang melalui proses verification. Contact lama kekal `ACTIVE` sehingga verification contact baharu berjaya.
+
+OTP policy kekal berasingan daripada OTP challenge persistence dan delivery layer.
+
+### Kawalan Skop
+
+Belum diperkenalkan:
+
+- OTP API endpoint.
+- OTP delivery integration.
+- WhatsApp API integration.
+- Email delivery integration.
+- Registration workflow.
+- Phone change workflow.
+- Email change workflow.
+- Account Recovery API workflow.
+- Admin OTP override API.
+
+---
+
 ## 2026-10-04 — OTP Challenge Foundation
 
 ### Versi
@@ -59,6 +101,78 @@ Belum diperkenalkan:
 - Email change workflow.
 - Account Recovery API workflow.
 - Admin OTP override API.
+
+---
+
+## 2026-10-04 — Account & Profile API Foundation
+
+### Versi
+
+`0.5.0`
+
+### Selesai
+
+- Menambah `AccountController`.
+- Menambah `ProfileController`.
+- Menambah `ProfileUpdateController`.
+- Menambah relationship `Account` → `AccountProfile`.
+- Menambah route `GET /api/v1/account`.
+- Menambah route `GET /api/v1/account/profile`.
+- Menambah route `PUT /api/v1/account/profile`.
+- Menetapkan Account endpoint hanya boleh dicapai melalui authenticated API session.
+- Menetapkan Profile GET boleh digunakan oleh Account `ACTIVE` dan `SUSPENDED`.
+- Menetapkan Profile UPDATE hanya boleh digunakan oleh Account `ACTIVE`.
+- Menetapkan Profile UPDATE ditolak dengan HTTP `403` bagi Account `SUSPENDED`.
+- Menetapkan display name hanya menerima huruf Unicode dan ruang.
+- Menetapkan display name hanya boleh ditukar sekali setiap 30 hari.
+- Menambah automated feature test untuk Account endpoint.
+- Menambah automated feature test untuk Profile GET endpoint.
+- Menambah automated feature test untuk Profile UPDATE endpoint.
+- Menambah unit test untuk relationship `Account` → `AccountProfile`.
+
+### Validation
+
+- Account/Profile test suite: `13 tests passed`.
+- Assertions: `31`.
+- Account GET endpoint: LULUS.
+- Profile GET endpoint: LULUS.
+- Profile UPDATE endpoint: LULUS.
+- SUSPENDED profile update restriction: LULUS.
+- Display name validation: LULUS.
+- Display name 30-day change restriction: LULUS.
+- Account model relationship: LULUS.
+- Validation dijalankan menggunakan PHP 8.4 Docker environment dengan `pdo_mysql`.
+
+### Keputusan Architecture
+
+Account API dan Profile API kekal sebagai foundation layer.
+
+Account Status, Authentication, Authorization dan Business Service Access kekal sebagai concern yang berasingan.
+
+`SUSPENDED` masih boleh authenticated bagi tujuan restricted access dan komunikasi dengan sistem/Admin, tetapi tidak dibenarkan mengubah profile.
+
+### Kawalan Skop
+
+Peringkat ini hanya memperkenalkan Account/Profile API minimum.
+
+Belum diperkenalkan:
+
+- Contact management.
+- Password management.
+- OTP workflow.
+- Account Recovery workflow.
+- Identity Verification.
+- Business service authorization.
+- Runner workflow.
+- Vendor workflow.
+- Order workflow.
+- Payment atau Wallet.
+
+### Peringkat Seterusnya
+
+Audit keseluruhan Account & Authentication Foundation v0.5.0 sebelum menentukan implementation layer seterusnya.
+
+---
 
 ## 2026-10-03 — Asas Account & Authentication
 
