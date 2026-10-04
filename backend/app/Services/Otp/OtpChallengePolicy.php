@@ -20,54 +20,56 @@ class OtpChallengePolicy
         AccountContact $contact,
         bool $authenticated
     ): bool {
-        if ($account !== null && $contact->account_id !== $account->id) {
+        if ($account === null) {
+            return false;
+        }
+
+        if ($contact->account_id !== $account->id) {
             return false;
         }
 
         return match ($purpose) {
             OtpChallengeService::PURPOSE_REGISTER =>
                 ! $authenticated
-                && $account === null
+                && $account->status === 'ACTIVE'
                 && $contact->type === 'PHONE'
-                && $contact->status === 'ACTIVE'
+                && $contact->status === 'PENDING'
                 && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_VERIFY_PHONE =>
                 $authenticated
-                && $account !== null
-                && $contact->account_id === $account->id
+                && $account->status === 'ACTIVE'
                 && $contact->type === 'PHONE'
-                && $contact->status === 'ACTIVE'
+                && $contact->status === 'PENDING'
                 && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_VERIFY_EMAIL =>
                 $authenticated
-                && $account !== null
-                && $contact->account_id === $account->id
+                && $account->status === 'ACTIVE'
                 && $contact->type === 'EMAIL'
-                && $contact->status === 'ACTIVE'
+                && $contact->status === 'PENDING'
                 && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_CHANGE_PHONE =>
                 $authenticated
-                && $account !== null
-                && $contact->account_id === $account->id
+                && $account->status === 'ACTIVE'
                 && $contact->type === 'PHONE'
-                && $contact->status === 'ACTIVE'
+                && $contact->status === 'PENDING'
                 && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_CHANGE_EMAIL =>
                 $authenticated
-                && $account !== null
-                && $contact->account_id === $account->id
+                && $account->status === 'ACTIVE'
                 && $contact->type === 'EMAIL'
-                && $contact->status === 'ACTIVE'
+                && $contact->status === 'PENDING'
                 && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_ACCOUNT_RECOVERY =>
                 ! $authenticated
-                && $account === null
-                && $contact->status === 'ACTIVE',
+                && $account->status !== 'DELETED'
+                && $contact->type === 'EMAIL'
+                && $contact->status === 'ACTIVE'
+                && $contact->is_verified,
 
             default => false,
         };
