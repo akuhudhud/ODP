@@ -1,5 +1,47 @@
 # Log Pembangunan
 
+## 2026-10-04 — OTP Contact Pending & Policy Foundation
+
+### Versi
+
+`0.5.0`
+
+### Selesai
+
+- Menambah status contact `PENDING` untuk proses verification sebelum contact menjadi `ACTIVE`.
+- Menetapkan contact `PENDING` bukan active identity contact.
+- Menetapkan satu contact `PENDING` bagi setiap Account + type.
+- Menetapkan nilai contact `PENDING` kekal unik secara global sepanjang proses verification.
+- Menetapkan contact baharu menjadi `ACTIVE` hanya selepas OTP verification berjaya.
+- Menetapkan contact lama bagi type yang sama menjadi `RELEASED` secara atomik selepas verification berjaya.
+- Menambah `OtpChallengePolicy` untuk memisahkan authorization context daripada OTP challenge service.
+- Menambah unit test untuk OTP policy.
+- Validation: `18 tests passed`, `18 assertions`.
+
+### Keputusan Architecture
+
+Lifecycle contact kini menggunakan `ACTIVE`, `PENDING` dan `RELEASED`.
+
+`PENDING` digunakan untuk contact baharu yang sedang melalui proses verification. Contact lama kekal `ACTIVE` sehingga verification contact baharu berjaya.
+
+OTP policy kekal berasingan daripada OTP challenge persistence dan delivery layer.
+
+### Kawalan Skop
+
+Belum diperkenalkan:
+
+- OTP API endpoint.
+- OTP delivery integration.
+- WhatsApp API integration.
+- Email delivery integration.
+- Registration workflow.
+- Phone change workflow.
+- Email change workflow.
+- Account Recovery API workflow.
+- Admin OTP override API.
+
+---
+
 ## 2026-10-04 — OTP Challenge Foundation
 
 ### Versi
@@ -434,4 +476,12 @@ Tiada business logic diperkenalkan pada peringkat ini.
 
 ### Keputusan Architecture
 
-Repository foundation menjadi
+Repository foundation menjadi asas kepada pembangunan ODP secara berperingkat.
+
+Semua perubahan utama mesti melalui GitHub dan direkodkan mengikut versioning projek.
+
+### Kawalan Skop
+
+Peringkat ini hanya meliputi repository foundation dan dokumentasi.
+
+Business logic belum diperkenalkan.
