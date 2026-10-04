@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('account_contacts', function (Blueprint $table) {
-            $table->dropUnique('active_unique_key');
+            $table->dropUnique('account_contacts_active_unique_key_unique');
             $table->dropColumn('active_unique_key');
 
             $table->string('contact_unique_key', 300)
@@ -33,10 +33,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('account_contacts', function (Blueprint $table) {
-            $table->dropUnique('contact_unique_key');
+            $table->dropUnique('account_contacts_contact_unique_key_unique');
             $table->dropColumn('contact_unique_key');
 
-            $table->dropUnique('pending_account_type_key');
+            $table->dropUnique('account_contacts_pending_account_type_key_unique');
             $table->dropColumn('pending_account_type_key');
 
             $table->string('active_unique_key', 300)
