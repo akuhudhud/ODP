@@ -63,18 +63,23 @@ class OtpChallengeService
                     );
                 }
 
-                if (
-                    $latest->resend_count >= self::MAX_RESENDS
-                    && $latest->last_sent_at->gt(
-                        $now->copy()->subHours(self::RESEND_LOCK_HOURS)
-                    )
-                ) {
-                    throw new RuntimeException(
-                        'OTP resend limit reached. Please try again later.'
-                    );
-                }
+                $resendCount = $latest->resend_count;
 
-                $resendCount = $latest->resend_count + 1;
+                if ($latest->resend_count >= self::MAX_RESENDS) {
+                    $lockExpiresAt = $latest->last_sent_at
+                        ->copy()
+                        ->addHours(self::RESEND_LOCK_HOURS);
+
+                    if ($now->lt($lockExpiresAt)) {
+                        throw new RuntimeException(
+                            'OTP resend limit reached. Please try again later.'
+                        );
+                    }
+
+                    $resendCount = 0;
+                } else {
+                    $resendCount++;
+                }
 
                 $latest->update([
                     'invalidated_at' => $now,
