@@ -1,5 +1,63 @@
 # Log Pembangunan
 
+## 2026-10-04 — OTP Challenge Foundation
+
+### Versi
+
+`0.5.0`
+
+### Selesai
+
+- Menambah `OtpChallenge` sebagai model rasmi OTP challenge.
+- Menambah migration `otp_challenges`.
+- Menambah `OtpChallengeService` sebagai domain service OTP.
+- Menetapkan OTP menggunakan kod 6 digit.
+- Menetapkan OTP hanya disimpan dalam bentuk hash.
+- Menetapkan tempoh sah OTP selama 5 minit.
+- Menetapkan maksimum 3 percubaan verification bagi setiap OTP.
+- Menetapkan resend cooldown selama 5 minit.
+- Menetapkan maksimum 3 resend.
+- Menetapkan resend lock selama 24 jam selepas had resend dicapai.
+- Menetapkan resend count reset selepas resend lock 24 jam tamat.
+- Menetapkan OTP baharu membatalkan OTP terdahulu bagi contact dan purpose yang sama.
+- Menetapkan OTP challenge terikat kepada contact yang tepat.
+- Menetapkan OTP purpose:
+  - `REGISTER`
+  - `VERIFY_PHONE`
+  - `VERIFY_EMAIL`
+  - `CHANGE_PHONE`
+  - `CHANGE_EMAIL`
+  - `ACCOUNT_RECOVERY`
+- Menambah unit test untuk `OtpChallenge`.
+- Menambah unit test untuk `OtpChallengeService`.
+- Menambah test untuk OTP resend lock dan reset selepas 24 jam.
+
+### Keputusan Architecture
+
+`OtpChallengeService` kekal sebagai domain challenge layer.
+
+OTP challenge, authorization/policy, API endpoint dan delivery channel akan kekal sebagai concern yang berasingan.
+
+Plaintext OTP hanya wujud pada proses issuance dan tidak disimpan dalam database.
+
+Delivery OTP melalui WhatsApp atau Email tidak menjadi sebahagian daripada challenge persistence layer.
+
+### Kawalan Skop
+
+Milestone ini hanya menyediakan OTP challenge foundation.
+
+Belum diperkenalkan:
+
+- OTP API endpoint.
+- OTP delivery integration.
+- WhatsApp API integration.
+- Email delivery integration.
+- Registration workflow.
+- Phone change workflow.
+- Email change workflow.
+- Account Recovery API workflow.
+- Admin OTP override API.
+
 ## 2026-10-04 — Account & Profile API Foundation
 
 ### Versi
