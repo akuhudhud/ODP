@@ -9,6 +9,7 @@ use App\Services\Otp\OtpChallengeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 use Tests\TestCase;
 
 class OtpChallengeServiceTest extends TestCase
@@ -212,5 +213,61 @@ class OtpChallengeServiceTest extends TestCase
         );
 
         Carbon::setTestNow();
+    }
+
+    public function test_resend_lock_expires_after_24_hours_and_resend_count_resets(): void
+    {
+        $account = Account::create([
+            'status' => 'ACTIVE',
+        ]);
+
+        $contact = AccountContact::create([
+            'account_id' => $account->id,
+            'type' => 'PHONE',
+            'value' => '+60123456789',
+            'status' => 'ACTIVE',
+            'is_verified' => false,
+        ]);
+
+        $service = new OtpChallengeService();
+
+        $result = $service->issue(
+            $contact,
+            OtpChallengeService::PURPOSE_VERIFY_PHONE
+        );
+
+        $challenge = $result['challenge'];
+
+        $challenge->update([
+            'resend_count' => 3,
+            'last_sent_at' => Carbon::now()->subHours(23),
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage(
+            'OTP resend limit reached. Please try again later.'
+        );
+
+        try {
+            $service->issue(
+                $contact,
+                OtpChallengeService::PURPOSE_VERIFY_PHONE
+            );
+        } finally {
+            $challenge->update([
+                'resend_count' => 3,
+                'last_sent_at' => Carbon::now()->subHours(25),
+            ]);
+
+            $newResult = $service->issue(
+                $contact,
+                OtpChallengeService::PURPOSE_VERIFY_PHONE
+            );
+
+            $this->assertSame(
+                0,
+                $newResult['challenge']->resend_count
+            );
+        }
     }
 }
