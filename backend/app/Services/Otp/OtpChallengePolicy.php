@@ -26,22 +26,48 @@ class OtpChallengePolicy
 
         return match ($purpose) {
             OtpChallengeService::PURPOSE_REGISTER =>
-                ! $authenticated && $account === null,
+                ! $authenticated
+                && $account === null
+                && $contact->type === 'PHONE'
+                && $contact->status === 'ACTIVE'
+                && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_VERIFY_PHONE =>
-                $authenticated && $account !== null,
+                $authenticated
+                && $account !== null
+                && $contact->account_id === $account->id
+                && $contact->type === 'PHONE'
+                && $contact->status === 'ACTIVE'
+                && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_VERIFY_EMAIL =>
-                $authenticated && $account !== null,
+                $authenticated
+                && $account !== null
+                && $contact->account_id === $account->id
+                && $contact->type === 'EMAIL'
+                && $contact->status === 'ACTIVE'
+                && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_CHANGE_PHONE =>
-                $authenticated && $account !== null,
+                $authenticated
+                && $account !== null
+                && $contact->account_id === $account->id
+                && $contact->type === 'PHONE'
+                && $contact->status === 'ACTIVE'
+                && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_CHANGE_EMAIL =>
-                $authenticated && $account !== null,
+                $authenticated
+                && $account !== null
+                && $contact->account_id === $account->id
+                && $contact->type === 'EMAIL'
+                && $contact->status === 'ACTIVE'
+                && ! $contact->is_verified,
 
             OtpChallengeService::PURPOSE_ACCOUNT_RECOVERY =>
-                ! $authenticated && $account === null,
+                ! $authenticated
+                && $account === null
+                && $contact->status === 'ACTIVE',
 
             default => false,
         };
