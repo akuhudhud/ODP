@@ -80,9 +80,12 @@ Jenis contact:
 Setiap contact mempunyai status:
 
 - `ACTIVE`
+- `PENDING`
 - `RELEASED`
 
-Contact juga mempunyai status verification.
+`PENDING` digunakan untuk contact baharu yang sedang melalui proses verification sebelum menjadi contact `ACTIVE`.
+
+Contact `PENDING` tidak dianggap sebagai active identity contact.
 
 ## Phone
 
@@ -109,6 +112,26 @@ Satu account boleh mempunyai maksimum:
 
 - satu active phone
 - satu active email
+
+Contact `PENDING` boleh wujud sementara proses verification berjalan.
+
+Satu account hanya boleh mempunyai:
+
+- satu `PENDING` phone
+- satu `PENDING` email
+
+pada satu masa.
+
+Contact `PENDING` tidak boleh menjadi active identity contact sehingga verification berjaya.
+
+Contact `PENDING` juga tidak boleh digunakan oleh account lain kerana nilai contact mesti kekal unik sepanjang proses verification.
+
+Selepas verification berjaya:
+
+1. contact baharu menjadi `ACTIVE`
+2. contact lama bagi type yang sama menjadi `RELEASED`
+
+Peralihan tersebut mesti dilakukan secara atomic dalam satu transaction.
 
 Contact yang telah `RELEASED` boleh digunakan oleh account lain selepas verification berjaya.
 
@@ -299,13 +322,19 @@ Selepas maksimum 3 resend dicapai:
 
 Pengguna boleh menghubungi Admin untuk bantuan sekiranya resend masih disekat.
 
-OTP baharu akan membatalkan OTP lama.
+OTP baharu akan membatalkan OTP lama bagi contact dan purpose yang sama.
 
 OTP plaintext tidak boleh disimpan.
 
 OTP hanya disimpan dalam bentuk hash.
 
 OTP mesti terikat kepada contact yang tepat.
+
+OTP untuk phone mesti berkait dengan phone contact yang tepat.
+
+OTP untuk email mesti berkait dengan email contact yang tepat.
+
+OTP untuk contact `PENDING` digunakan untuk menyelesaikan verification sebelum contact tersebut boleh menjadi `ACTIVE`.
 
 ## OTP Purpose
 
@@ -702,12 +731,16 @@ Runner eligibility ialah concern berasingan.
 
 Setiap concern hendaklah kekal berasingan.
 
+Architecture hendaklah mengelakkan business logic daripada masuk terlalu awal ke Identity Foundation.
+
+Foundation mesti boleh digunakan oleh User App, Runner App dan Admin tanpa mewujudkan identity account yang berasingan.
+
 ---
 
 # 19. Status Keputusan
 
 Architecture dalam dokumen ini adalah:
 
-**LOCKED**
+`LOCKED`
 
 Sebarang perubahan kepada keputusan ini memerlukan keputusan baharu daripada Kapten sebelum implementation diteruskan.
